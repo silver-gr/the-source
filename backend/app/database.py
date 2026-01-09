@@ -56,9 +56,18 @@ class Database:
             logger.info("Disconnected from database")
 
     async def run_migrations(self) -> None:
-        """Run all pending migrations."""
+        """Run all pending migrations with tracking."""
         if not self._connection:
             raise RuntimeError("Database not connected")
+
+        # Create migrations tracking table if it doesn't exist
+        await self._connection.execute("""
+            CREATE TABLE IF NOT EXISTS _migrations (
+                name TEXT PRIMARY KEY,
+                applied_at TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        await self._connection.commit()
 
         migrations_dir = Path(__file__).parent.parent / "migrations"
         if not migrations_dir.exists():
@@ -68,15 +77,37 @@ class Database:
         # Get list of migration files
         migration_files = sorted(migrations_dir.glob("*.sql"))
 
+        # Get already applied migrations
+        cursor = await self._connection.execute("SELECT name FROM _migrations")
+        applied = {row[0] for row in await cursor.fetchall()}
+
+        migrations_run = 0
         for migration_file in migration_files:
+            if migration_file.name in applied:
+                logger.debug(f"Skipping already applied migration: {migration_file.name}")
+                continue
+
             logger.info(f"Running migration: {migration_file.name}")
             sql = migration_file.read_text()
 
-            # Execute migration (split by semicolons for multiple statements)
-            await self._connection.executescript(sql)
-            await self._connection.commit()
+            try:
+                # Execute migration
+                await self._connection.executescript(sql)
+                # Record migration as applied
+                await self._connection.execute(
+                    "INSERT INTO _migrations (name) VALUES (?)",
+                    (migration_file.name,)
+                )
+                await self._connection.commit()
+                migrations_run += 1
+            except Exception as e:
+                logger.error(f"Migration {migration_file.name} failed: {e}")
+                raise
 
-        logger.info(f"Completed {len(migration_files)} migration(s)")
+        if migrations_run > 0:
+            logger.info(f"Completed {migrations_run} new migration(s)")
+        else:
+            logger.debug("No new migrations to run")
 
     @asynccontextmanager
     async def get_connection(self) -> AsyncGenerator[aiosqlite.Connection, None]:
