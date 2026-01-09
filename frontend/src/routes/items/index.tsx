@@ -263,6 +263,15 @@ function ItemsPage() {
         filteredCount={items.length}
       />
 
+      {/* Top Pagination Navigation */}
+      {totalPages > 1 && (
+        <PaginationNav
+          currentPage={page}
+          totalPages={totalPages}
+          onPageChange={handlePageChange}
+        />
+      )}
+
       {/* Items View */}
       {filters.groupBy !== 'none' ? (
         // Grouped View

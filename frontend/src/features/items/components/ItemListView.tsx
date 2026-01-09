@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { SourceIcon } from '@/components/shared/SourceIcon'
+import { FaviconImage } from '@/components/shared/FaviconImage'
 import { cn } from '@/lib/utils'
 import type { SavedItem } from '@/types'
 
@@ -72,7 +73,7 @@ export function ItemListView({
         </div>
         <Card className="max-h-[80vh] overflow-hidden">
           <CardContent className="p-4 max-h-[78vh] overflow-y-auto">
-            <div className="grid gap-1 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid gap-1 md:grid-cols-2">
               {Array.from({ length: 50 }).map((_, i) => (
                 <div
                   key={i}
@@ -168,10 +169,10 @@ export function ItemListView({
         )}
       </div>
 
-      {/* Compact List View - 2-3 columns */}
+      {/* Compact List View - 2 columns for more title visibility */}
       <Card className="max-h-[80vh] overflow-hidden transition-shadow hover:shadow-md">
         <CardContent className="p-4 max-h-[78vh] overflow-y-auto">
-          <div className="grid gap-1 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-1 md:grid-cols-2">
             {items.map((item, index) => (
               <ListItemRow
                 key={item.id}
@@ -279,16 +280,28 @@ function ListItemRow({
         )}
       </div>
 
-      {/* Source Icon */}
-      <SourceIcon
-        source={item.source}
-        size="sm"
-        className={cn(
-          "flex-shrink-0",
-          "transition-transform duration-150",
-          "group-hover:scale-110"
-        )}
-      />
+      {/* Source Icon or Favicon for raindrop */}
+      {item.source === 'raindrop' && item.url ? (
+        <FaviconImage
+          url={item.url}
+          size="sm"
+          className={cn(
+            "flex-shrink-0",
+            "transition-transform duration-150",
+            "group-hover:scale-110"
+          )}
+        />
+      ) : (
+        <SourceIcon
+          source={item.source}
+          size="sm"
+          className={cn(
+            "flex-shrink-0",
+            "transition-transform duration-150",
+            "group-hover:scale-110"
+          )}
+        />
+      )}
 
       {/* Title with Link */}
       <Link
