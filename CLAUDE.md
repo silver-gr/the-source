@@ -207,6 +207,48 @@ All settings use `UNIFIED_` prefix, loaded via Pydantic Settings in `app/config.
 - `GET /api/v1/sync/status` - Get sync status for all sources
 - `DELETE /api/v1/sync/{source}/credentials` - Clear stored credentials
 
+## Link Explorer Feature
+
+**Recent Addition:** Full-featured link management interface with:
+
+### State Management
+- **`useItemFilters`** (`frontend/src/features/items/hooks/useItemFilters.ts`)
+  - URL-synced filters with browser back/forward support
+  - Uses `pushState` for navigation, `popstate` listener for back/forward
+  - Handles: pagination, sorting, date range, grouping, view mode
+
+- **`usePreferences`** (`frontend/src/hooks/usePreferences.ts`)
+  - localStorage persistence for user preferences
+  - Storage prefix: `unifiedsaved:`
+  - Stores: defaultView (grid/list), defaultPageSize
+
+### Key Components
+- **Pagination** - `PaginationNav.tsx` - Smart page navigation with ellipsis
+- **Filtering** - `DateRangePicker.tsx` with presets (24h, 7d, 30d, 90d, year)
+- **Sorting** - `SortSelect.tsx` with direction toggle (saved_at, synced_at, created_at, title, priority)
+- **Grouping** - `GroupBySelect.tsx` + `GroupedItemsView.tsx` - Collapsible groups by date/source/tags
+- **Favicon Display** - `FaviconImage.tsx` - Google Favicon API with gradient fallback
+
+### UI Polish Patterns
+All interactive elements use consistent animations:
+- `transition-all duration-150/200 ease-out` for smooth transitions
+- `hover:scale-105` for buttons, `hover:scale-110` for icons
+- `focus-visible:ring-2 ring-primary` for accessibility
+- `animate-in fade-in-0 zoom-in-95` for dropdown animations
+- Custom checkboxes with Check icon from lucide-react
+
+### URL State Structure
+Query params used for shareable links:
+- `?page=N` - Pagination
+- `?view=grid|list` - View mode
+- `?sort=field:order` - Sorting (e.g., `saved_at:desc`)
+- `?sources=youtube,reddit` - Comma-separated sources
+- `?status=unprocessed|read|archived` - Item status
+- `?from=ISO_DATE&to=ISO_DATE` - Date range
+- `?group=none|date|source|tags` - Grouping mode
+- `?search=query` - Search text
+- `?tags=tag1,tag2` - Comma-separated tags
+
 ## Important Notes
 
 1. **Port Configuration:** Frontend API client points to port 8001, backend default is 8000. Either run backend on 8001 or update `src/lib/api-client.ts`.
@@ -218,3 +260,5 @@ All settings use `UNIFIED_` prefix, loaded via Pydantic Settings in `app/config.
 4. **Source Colors:** UI uses distinct colors per source - defined in `frontend/src/index.css` with Tailwind v4 `@theme` directive.
 
 5. **Sync Status Polling:** Frontend polls sync status every 3s when syncing, 5s for items refresh.
+
+6. **State Persistence:** View preferences stored in localStorage, filters synced to URL for browser navigation support.
