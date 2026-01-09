@@ -67,7 +67,7 @@ export interface SyncTriggerResponse {
  */
 export type SortByField = 'saved_at' | 'synced_at' | 'created_at' | 'title' | 'priority'
 export type SortOrder = 'asc' | 'desc'
-export type GroupByOption = 'none' | 'date' | 'source' | 'tags'
+export type GroupByOption = 'none' | 'date' | 'source' | 'tags' | 'website'
 export type ViewMode = 'grid' | 'list'
 
 export interface FilterState {
@@ -83,6 +83,11 @@ export interface FilterState {
   savedBefore: string | null // ISO date string
   // Grouping
   groupBy: GroupByOption
+  // Grouping drill-down fields
+  groupYear: number | null    // For date grouping: e.g., 2025
+  groupMonth: number | null   // For date grouping: 1-12
+  groupTag: string | null     // For tag grouping: selected tag
+  groupDomain: string | null  // For website grouping: selected domain
 }
 
 export interface SortState {
@@ -153,4 +158,27 @@ export const STATUS_METADATA: Record<
     color: '#94a3b8',
     bgClass: 'status-archived',
   },
+}
+
+/**
+ * Tags and Domains API response types
+ */
+export interface TagWithCount {
+  tag: string
+  count: number
+}
+
+export interface DomainWithCount {
+  domain: string
+  count: number
+}
+
+export interface TagsResponse {
+  tags: TagWithCount[]
+  total: number
+}
+
+export interface DomainsResponse {
+  domains: DomainWithCount[]
+  total: number
 }

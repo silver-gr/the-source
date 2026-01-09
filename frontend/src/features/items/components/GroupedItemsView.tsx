@@ -1,109 +1,66 @@
 import { useState, useMemo, useCallback, type ReactNode } from 'react'
-import { ChevronRight, Calendar, Clock, Tag, Globe, ChevronsUpDown, ChevronsDownUp } from 'lucide-react'
+import { ChevronRight, ChevronsUpDown, ChevronsDownUp, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
 import { SourceIcon } from '@/components/shared/SourceIcon'
+import { DateGroupNavigator } from '@/components/shared/DateGroupNavigator'
+import { TagGroupSelector } from '@/components/shared/TagGroupSelector'
+import { WebsiteGroupSidebar } from '@/components/shared/WebsiteGroupSidebar'
 import type { SavedItem, Source } from '@/types'
 import type { GroupByOption } from '@/components/shared/GroupBySelect'
 
 interface GroupedItemsViewProps {
-  items: SavedItem[]
   groupBy: GroupByOption
+  items: SavedItem[]
+  totalItems?: number
+
+  // For date grouping (required when groupBy === 'date')
+  selectedYear?: number | null
+  selectedMonth?: number | null
+  availableYears?: number[]
+  availableMonths?: number[]
+  onYearChange?: (year: number) => void
+  onMonthChange?: (month: number | null) => void
+
+  // For tag grouping (required when groupBy === 'tags')
+  tagsWithCounts?: Array<{ tag: string; count: number }>
+  selectedTag?: string | null
+  onTagSelect?: (tag: string | null) => void
+
+  // For website grouping (required when groupBy === 'website')
+  domainsWithCounts?: Array<{ domain: string; count: number }>
+  selectedDomain?: string | null
+  onDomainSelect?: (domain: string | null) => void
+
+  // Common
   renderItem: (item: SavedItem) => ReactNode
+  isLoading?: boolean
   className?: string
 }
 
-interface ItemGroup {
-  key: string
+interface SourceGroup {
+  key: Source
   label: string
-  icon: ReactNode
   items: SavedItem[]
 }
 
-/**
- * Groups items by date into logical buckets
- */
-function groupByDate(items: SavedItem[]): ItemGroup[] {
-  const now = new Date()
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-  const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000)
-  const thisWeek = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
-  const thisMonth = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
-
-  const groups: Record<string, SavedItem[]> = {
-    today: [],
-    yesterday: [],
-    thisWeek: [],
-    thisMonth: [],
-    older: [],
-  }
-
-  items.forEach((item) => {
-    const date = new Date(item.created_at)
-    if (date >= today) {
-      groups.today.push(item)
-    } else if (date >= yesterday) {
-      groups.yesterday.push(item)
-    } else if (date >= thisWeek) {
-      groups.thisWeek.push(item)
-    } else if (date >= thisMonth) {
-      groups.thisMonth.push(item)
-    } else {
-      groups.older.push(item)
-    }
-  })
-
-  const result: ItemGroup[] = []
-
-  if (groups.today.length > 0) {
-    result.push({
-      key: 'today',
-      label: 'Today',
-      icon: <Clock className="h-4 w-4" />,
-      items: groups.today,
-    })
-  }
-  if (groups.yesterday.length > 0) {
-    result.push({
-      key: 'yesterday',
-      label: 'Yesterday',
-      icon: <Clock className="h-4 w-4" />,
-      items: groups.yesterday,
-    })
-  }
-  if (groups.thisWeek.length > 0) {
-    result.push({
-      key: 'thisWeek',
-      label: 'This Week',
-      icon: <Calendar className="h-4 w-4" />,
-      items: groups.thisWeek,
-    })
-  }
-  if (groups.thisMonth.length > 0) {
-    result.push({
-      key: 'thisMonth',
-      label: 'This Month',
-      icon: <Calendar className="h-4 w-4" />,
-      items: groups.thisMonth,
-    })
-  }
-  if (groups.older.length > 0) {
-    result.push({
-      key: 'older',
-      label: 'Older',
-      icon: <Calendar className="h-4 w-4" />,
-      items: groups.older,
-    })
-  }
-
-  return result
+const SOURCE_ORDER: Source[] = ['youtube', 'reddit', 'instagram', 'raindrop', 'facebook', 'telegram', 'manual']
+const SOURCE_LABELS: Record<Source, string> = {
+  youtube: 'YouTube',
+  reddit: 'Reddit',
+  instagram: 'Instagram',
+  raindrop: 'Raindrop',
+  facebook: 'Facebook',
+  telegram: 'Telegram',
+  manual: 'Manual',
 }
 
 /**
  * Groups items by source platform
  */
-function groupBySource(items: SavedItem[]): ItemGroup[] {
+function groupItemsBySource(items: SavedItem[]): SourceGroup[] {
   const groups: Record<Source, SavedItem[]> = {
     youtube: [],
     reddit: [],
@@ -118,111 +75,57 @@ function groupBySource(items: SavedItem[]): ItemGroup[] {
     groups[item.source].push(item)
   })
 
-  const sourceOrder: Source[] = ['youtube', 'reddit', 'instagram', 'raindrop', 'facebook', 'telegram', 'manual']
-  const sourceLabels: Record<Source, string> = {
-    youtube: 'YouTube',
-    reddit: 'Reddit',
-    instagram: 'Instagram',
-    raindrop: 'Raindrop',
-    facebook: 'Facebook',
-    telegram: 'Telegram',
-    manual: 'Manual',
-  }
-
-  return sourceOrder
+  return SOURCE_ORDER
     .filter((source) => groups[source].length > 0)
     .map((source) => ({
       key: source,
-      label: sourceLabels[source],
-      icon: <SourceIcon source={source} size="sm" />,
+      label: SOURCE_LABELS[source],
       items: groups[source],
     }))
 }
 
 /**
- * Groups items by their first tag
+ * Loading skeleton for item lists
  */
-function groupByTags(items: SavedItem[]): ItemGroup[] {
-  const groups: Record<string, SavedItem[]> = { untagged: [] }
-
-  items.forEach((item) => {
-    if (item.tags && item.tags.length > 0) {
-      const firstTag = item.tags[0]
-      if (!groups[firstTag]) {
-        groups[firstTag] = []
-      }
-      groups[firstTag].push(item)
-    } else {
-      groups.untagged.push(item)
-    }
-  })
-
-  const result: ItemGroup[] = []
-
-  // Sort tags alphabetically, but put untagged at the end
-  const tagKeys = Object.keys(groups).filter((k) => k !== 'untagged').sort()
-
-  tagKeys.forEach((tag) => {
-    result.push({
-      key: tag,
-      label: tag,
-      icon: <Tag className="h-4 w-4" />,
-      items: groups[tag],
-    })
-  })
-
-  if (groups.untagged.length > 0) {
-    result.push({
-      key: 'untagged',
-      label: 'Untagged',
-      icon: <Tag className="h-4 w-4 text-muted-foreground" />,
-      items: groups.untagged,
-    })
-  }
-
-  return result
+function ItemListSkeleton({ count = 5 }: { count?: number }) {
+  return (
+    <div className="space-y-2">
+      {Array.from({ length: count }).map((_, i) => (
+        <div key={i} className="flex items-center gap-3 p-3 rounded-lg border bg-card">
+          <Skeleton className="h-10 w-10 rounded shrink-0" />
+          <div className="flex-1 space-y-2">
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-3 w-1/2" />
+          </div>
+        </div>
+      ))}
+    </div>
+  )
 }
 
 /**
- * GroupedItemsView component - Displays items in collapsible groups
- * Supports grouping by date, source, or tags
+ * Source grouped view with collapsible sections
  */
-export function GroupedItemsView({
+function SourceGroupedView({
   items,
-  groupBy,
   renderItem,
-  className,
-}: GroupedItemsViewProps) {
-  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set())
+  isLoading,
+}: {
+  items: SavedItem[]
+  renderItem: (item: SavedItem) => ReactNode
+  isLoading?: boolean
+}) {
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<Source>>(new Set())
 
-  const groups = useMemo(() => {
-    switch (groupBy) {
-      case 'date':
-        return groupByDate(items)
-      case 'source':
-        return groupBySource(items)
-      case 'tags':
-        return groupByTags(items)
-      case 'none':
-      default:
-        return [
-          {
-            key: 'all',
-            label: 'All Items',
-            icon: <Globe className="h-4 w-4" />,
-            items,
-          },
-        ]
-    }
-  }, [items, groupBy])
+  const groups = useMemo(() => groupItemsBySource(items), [items])
 
-  const toggleGroup = useCallback((groupKey: string) => {
+  const toggleGroup = useCallback((source: Source) => {
     setCollapsedGroups((prev) => {
       const next = new Set(prev)
-      if (next.has(groupKey)) {
-        next.delete(groupKey)
+      if (next.has(source)) {
+        next.delete(source)
       } else {
-        next.add(groupKey)
+        next.add(source)
       }
       return next
     })
@@ -236,20 +139,27 @@ export function GroupedItemsView({
     setCollapsedGroups(new Set(groups.map((g) => g.key)))
   }, [groups])
 
-  // If groupBy is 'none', render items directly without group headers
-  if (groupBy === 'none') {
-    return <div className={className}>{items.map(renderItem)}</div>
+  if (isLoading) {
+    return <ItemListSkeleton count={8} />
+  }
+
+  if (groups.length === 0) {
+    return (
+      <div className="text-center py-12 text-muted-foreground">
+        No items to display
+      </div>
+    )
   }
 
   const allCollapsed = collapsedGroups.size === groups.length
   const allExpanded = collapsedGroups.size === 0
 
   return (
-    <div className={cn('space-y-4', className)}>
+    <div className="space-y-4">
       {/* Expand/Collapse All Controls */}
       <div className="flex items-center justify-between">
         <span className="text-sm text-muted-foreground">
-          {groups.length} {groups.length === 1 ? 'group' : 'groups'}
+          {groups.length} {groups.length === 1 ? 'source' : 'sources'}
         </span>
         <div className="flex items-center gap-1">
           <Button
@@ -285,7 +195,7 @@ export function GroupedItemsView({
         </div>
       </div>
 
-      {/* Groups */}
+      {/* Source Groups */}
       <div className="space-y-3">
         {groups.map((group) => {
           const isCollapsed = collapsedGroups.has(group.key)
@@ -322,7 +232,7 @@ export function GroupedItemsView({
                 </div>
 
                 <span className="flex-shrink-0 transition-transform duration-200 group-hover:scale-110">
-                  {group.icon}
+                  <SourceIcon source={group.key} size="sm" />
                 </span>
 
                 <span className="font-medium flex-1 transition-colors group-hover:text-primary">
@@ -336,7 +246,7 @@ export function GroupedItemsView({
                     'group-hover:bg-primary group-hover:text-primary-foreground'
                   )}
                 >
-                  {group.items.length}
+                  {group.items.length.toLocaleString()}
                 </Badge>
               </button>
 
@@ -348,7 +258,7 @@ export function GroupedItemsView({
                 )}
               >
                 <div className="overflow-hidden">
-                  <div className="p-4">
+                  <div className="p-4 space-y-1">
                     {group.items.map(renderItem)}
                   </div>
                 </div>
@@ -357,6 +267,136 @@ export function GroupedItemsView({
           )
         })}
       </div>
+    </div>
+  )
+}
+
+/**
+ * GroupedItemsView component - Unified grouping interface
+ *
+ * Supports different grouping modes:
+ * - source: Collapsible sections by platform (YouTube, Reddit, etc.)
+ * - date: DateGroupNavigator for year/month filtering via API
+ * - tags: TagGroupSelector pills for tag filtering via API
+ * - website: WebsiteGroupSidebar for domain filtering via API
+ * - none: Flat list without grouping
+ */
+export function GroupedItemsView({
+  groupBy,
+  items,
+  totalItems,
+  // Date grouping props
+  selectedYear,
+  selectedMonth,
+  availableYears,
+  availableMonths,
+  onYearChange,
+  onMonthChange,
+  // Tag grouping props
+  tagsWithCounts,
+  selectedTag,
+  onTagSelect,
+  // Website grouping props
+  domainsWithCounts,
+  selectedDomain,
+  onDomainSelect,
+  // Common props
+  renderItem,
+  isLoading,
+  className,
+}: GroupedItemsViewProps) {
+  // Loading state with spinner
+  const renderLoadingOverlay = () => {
+    if (!isLoading) return null
+    return (
+      <div className="flex items-center justify-center py-8">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+
+  // Empty state
+  const renderEmptyState = () => {
+    if (isLoading || items.length > 0) return null
+    return (
+      <div className="text-center py-12 text-muted-foreground">
+        No items found
+      </div>
+    )
+  }
+
+  // Item list renderer
+  const renderItemList = () => {
+    if (isLoading) return <ItemListSkeleton />
+    if (items.length === 0) return renderEmptyState()
+    return <div className="space-y-1">{items.map(renderItem)}</div>
+  }
+
+  // Source grouping - collapsible sections (works with pre-filtered items)
+  if (groupBy === 'source') {
+    return (
+      <div className={className}>
+        <SourceGroupedView items={items} renderItem={renderItem} isLoading={isLoading} />
+      </div>
+    )
+  }
+
+  // Date grouping - navigator + flat list
+  if (groupBy === 'date') {
+    return (
+      <div className={cn('space-y-4', className)}>
+        <DateGroupNavigator
+          selectedYear={selectedYear ?? new Date().getFullYear()}
+          selectedMonth={selectedMonth ?? null}
+          availableYears={availableYears ?? []}
+          availableMonths={availableMonths ?? []}
+          onYearChange={onYearChange ?? (() => {})}
+          onMonthChange={onMonthChange ?? (() => {})}
+        />
+        {renderLoadingOverlay()}
+        {renderItemList()}
+      </div>
+    )
+  }
+
+  // Tags grouping - pill selector + flat list
+  if (groupBy === 'tags') {
+    return (
+      <div className={cn('space-y-4', className)}>
+        <TagGroupSelector
+          tags={tagsWithCounts ?? []}
+          selectedTag={selectedTag ?? null}
+          onTagSelect={onTagSelect ?? (() => {})}
+          totalItems={totalItems ?? items.length}
+        />
+        {renderLoadingOverlay()}
+        {renderItemList()}
+      </div>
+    )
+  }
+
+  // Website grouping - sidebar + main content
+  if (groupBy === 'website') {
+    return (
+      <div className={cn('flex gap-4', className)}>
+        <WebsiteGroupSidebar
+          domains={domainsWithCounts ?? []}
+          selectedDomain={selectedDomain ?? null}
+          onDomainSelect={onDomainSelect ?? (() => {})}
+        />
+        <div className="flex-1">
+          {renderLoadingOverlay()}
+          {renderItemList()}
+        </div>
+      </div>
+    )
+  }
+
+  // 'none' - flat list without grouping
+  return (
+    <div className={className}>
+      {renderLoadingOverlay()}
+      {renderItemList()}
     </div>
   )
 }

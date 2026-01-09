@@ -9,11 +9,13 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from app.schemas.item import (
     BulkProcessedRequest,
     BulkProcessedResponse,
+    DomainsResponse,
     FilterParams,
     ItemCreate,
     ItemResponse,
     ItemUpdate,
     PaginatedResponse,
+    TagsResponse,
 )
 from app.services.item_service import ItemService, get_item_service
 
@@ -115,6 +117,40 @@ async def get_stats(
         - items_by_source: Count of items per source
     """
     return await service.get_stats()
+
+
+@router.get("/tags", response_model=TagsResponse)
+async def get_tags(
+    service: Annotated[ItemService, Depends(get_service)],
+    with_counts: bool = Query(
+        default=True, description="Include item counts per tag"
+    ),
+) -> TagsResponse:
+    """Get all unique tags with item counts.
+
+    Returns a list of all unique tags found across all items, sorted by
+    the number of items tagged with each tag (descending).
+
+    - **with_counts**: If true, includes item count per tag (default: true)
+    """
+    return await service.get_tags(with_counts=with_counts)
+
+
+@router.get("/domains", response_model=DomainsResponse)
+async def get_domains(
+    service: Annotated[ItemService, Depends(get_service)],
+) -> DomainsResponse:
+    """Get all unique domains with item counts.
+
+    Extracts the domain from each item's URL and aggregates counts.
+    Domains are normalized by removing the 'www.' prefix.
+    Results are sorted by count descending.
+
+    Returns:
+        - domains: List of domains with their item counts
+        - total: Total number of unique domains
+    """
+    return await service.get_domains()
 
 
 @router.get("/{item_id}", response_model=ItemResponse)

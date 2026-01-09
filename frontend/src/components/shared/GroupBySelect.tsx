@@ -1,14 +1,13 @@
-import { Layers, Calendar, Globe, Tags, Check } from 'lucide-react'
+import { Layers, Calendar, Globe, Tags, Link2 } from 'lucide-react'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 
-export type GroupByOption = 'none' | 'date' | 'source' | 'tags'
+export type GroupByOption = 'none' | 'date' | 'source' | 'tags' | 'website'
 
 interface GroupBySelectProps {
   value: GroupByOption
@@ -21,6 +20,7 @@ const groupByOptions = [
   { value: 'date' as const, label: 'By Date', icon: Calendar, description: 'Today, This Week, etc.' },
   { value: 'source' as const, label: 'By Source', icon: Globe, description: 'YouTube, Reddit, etc.' },
   { value: 'tags' as const, label: 'By Tags', icon: Tags, description: 'First tag of each item' },
+  { value: 'website' as const, label: 'By Website', icon: Link2, description: 'Group by domain' },
 ]
 
 /**
@@ -35,7 +35,7 @@ export function GroupBySelect({ value, onValueChange, className }: GroupBySelect
     <Select value={value} onValueChange={onValueChange}>
       <SelectTrigger
         className={cn(
-          'transition-all duration-200 ease-out',
+          'w-[140px] transition-all duration-200 ease-out',
           'hover:shadow-md hover:border-primary/50',
           'focus:ring-2 focus:ring-primary focus:ring-offset-2',
           'data-[state=open]:ring-2 data-[state=open]:ring-primary data-[state=open]:ring-offset-2',
@@ -44,7 +44,7 @@ export function GroupBySelect({ value, onValueChange, className }: GroupBySelect
       >
         <div className="flex items-center gap-2">
           <SelectedIcon className="h-4 w-4 text-muted-foreground" />
-          <SelectValue placeholder="Group by..." />
+          <span>{selectedOption?.label || 'Group'}</span>
         </div>
       </SelectTrigger>
       <SelectContent
@@ -83,9 +83,6 @@ export function GroupBySelect({ value, onValueChange, className }: GroupBySelect
                     {option.description}
                   </span>
                 </div>
-                {isSelected && (
-                  <Check className="ml-auto h-4 w-4 text-primary" />
-                )}
               </div>
             </SelectItem>
           )

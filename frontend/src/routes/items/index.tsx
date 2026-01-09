@@ -278,7 +278,9 @@ function ItemsPage() {
         <GroupedItemsView
           items={items}
           groupBy={filters.groupBy}
+          totalItems={totalCount}
           renderItem={renderItem}
+          isLoading={isLoading}
         />
       ) : effectiveViewMode === 'grid' ? (
         // Grid View

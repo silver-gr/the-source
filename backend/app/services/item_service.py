@@ -8,11 +8,15 @@ from app.database import Database, get_database
 from app.repositories.item_repo import ItemRepository
 from app.schemas.item import (
     BulkProcessedResponse,
+    DomainCount,
+    DomainsResponse,
     FilterParams,
     ItemCreate,
     ItemResponse,
     ItemUpdate,
     PaginatedResponse,
+    TagCount,
+    TagsResponse,
 )
 
 logger = logging.getLogger(__name__)
@@ -204,6 +208,29 @@ class ItemService:
             # Create new item
             created = await self._repo.create(item)
             return ItemResponse.model_validate(created), True
+
+    async def get_tags(self, with_counts: bool = True) -> TagsResponse:
+        """Get all unique tags with optional item counts.
+
+        Args:
+            with_counts: If True, include item counts per tag.
+
+        Returns:
+            TagsResponse with list of tags and total count.
+        """
+        tags_data = await self._repo.get_tags_with_counts(with_counts)
+        tags = [TagCount(**tag) for tag in tags_data]
+        return TagsResponse(tags=tags, total=len(tags))
+
+    async def get_domains(self) -> DomainsResponse:
+        """Get all unique domains with item counts.
+
+        Returns:
+            DomainsResponse with list of domains and total count.
+        """
+        domains_data = await self._repo.get_domains_with_counts()
+        domains = [DomainCount(**domain) for domain in domains_data]
+        return DomainsResponse(domains=domains, total=len(domains))
 
 
 # Dependency injection helper

@@ -5,6 +5,7 @@ import logging
 import uuid
 from datetime import datetime
 from typing import Any
+from urllib.parse import urlparse
 
 import aiosqlite
 
@@ -386,3 +387,64 @@ class ItemRepository:
             "source_count": row["source_count"] if row else 0,
             "items_by_source": {r["source"]: r["count"] for r in source_rows},
         }
+
+    async def get_tags_with_counts(self, with_counts: bool = True) -> list[dict[str, Any]]:
+        """Get all unique tags with their item counts.
+
+        Uses SQLite json_each() to extract tags from JSON array column.
+
+        Args:
+            with_counts: If True, include item counts per tag.
+
+        Returns:
+            List of dicts with 'tag' and 'count' keys, sorted by count descending.
+        """
+        sql = """
+            SELECT tag, COUNT(*) as count
+            FROM (
+                SELECT json_each.value as tag
+                FROM items, json_each(items.tags)
+                WHERE items.tags IS NOT NULL AND items.tags != '[]'
+            )
+            GROUP BY tag
+            ORDER BY count DESC
+        """
+        rows = await self._db.fetchall(sql)
+
+        if with_counts:
+            return [{"tag": row["tag"], "count": row["count"]} for row in rows]
+        else:
+            return [{"tag": row["tag"], "count": 0} for row in rows]
+
+    async def get_domains_with_counts(self) -> list[dict[str, Any]]:
+        """Get all unique domains with their item counts.
+
+        Extracts domain from URL using Python's urlparse and aggregates counts.
+        Domains are normalized by removing 'www.' prefix.
+
+        Returns:
+            List of dicts with 'domain' and 'count' keys, sorted by count descending.
+        """
+        # Fetch all URLs from the database
+        sql = "SELECT url FROM items WHERE url IS NOT NULL AND url != ''"
+        rows = await self._db.fetchall(sql)
+
+        # Extract and normalize domains using Python
+        domain_counts: dict[str, int] = {}
+        for row in rows:
+            url = row["url"]
+            try:
+                parsed = urlparse(url)
+                domain = parsed.netloc.replace("www.", "") if parsed.netloc else None
+                if domain:
+                    domain_counts[domain] = domain_counts.get(domain, 0) + 1
+            except Exception:
+                # Skip malformed URLs
+                continue
+
+        # Sort by count descending
+        sorted_domains = sorted(
+            domain_counts.items(), key=lambda x: x[1], reverse=True
+        )
+
+        return [{"domain": domain, "count": count} for domain, count in sorted_domains]

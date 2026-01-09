@@ -144,6 +144,10 @@ export function ItemFilters({
       savedAfter: null,
       savedBefore: null,
       groupBy: 'none',
+      groupYear: null,
+      groupMonth: null,
+      groupTag: null,
+      groupDomain: null,
     })
   }, [onFiltersChange])
 

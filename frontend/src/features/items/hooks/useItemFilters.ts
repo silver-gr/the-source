@@ -25,6 +25,11 @@ const DEFAULT_FILTERS: FilterState = {
   savedAfter: null,
   savedBefore: null,
   groupBy: 'none',
+  // Grouping drill-down fields
+  groupYear: null,
+  groupMonth: null,
+  groupTag: null,
+  groupDomain: null,
 }
 
 /**
@@ -82,8 +87,35 @@ function parseFiltersFromUrl(searchParams: URLSearchParams): Partial<FilterState
 
   // Parse groupBy
   const groupBy = searchParams.get('group')
-  if (groupBy && ['none', 'date', 'source', 'tags'].includes(groupBy)) {
+  if (groupBy && ['none', 'date', 'source', 'tags', 'website'].includes(groupBy)) {
     filters.groupBy = groupBy as GroupByOption
+  }
+
+  // Parse grouping drill-down fields
+  const year = searchParams.get('year')
+  if (year) {
+    const parsed = parseInt(year, 10)
+    if (!isNaN(parsed) && parsed >= 1900 && parsed <= 2100) {
+      filters.groupYear = parsed
+    }
+  }
+
+  const month = searchParams.get('month')
+  if (month) {
+    const parsed = parseInt(month, 10)
+    if (!isNaN(parsed) && parsed >= 1 && parsed <= 12) {
+      filters.groupMonth = parsed
+    }
+  }
+
+  const tag = searchParams.get('tag')
+  if (tag) {
+    filters.groupTag = tag
+  }
+
+  const domain = searchParams.get('domain')
+  if (domain) {
+    filters.groupDomain = domain
   }
 
   return filters
@@ -157,6 +189,23 @@ function serializeFiltersToUrl(
   // Group by (only if not default)
   if (filters.groupBy !== 'none') {
     params.set('group', filters.groupBy)
+  }
+
+  // Grouping drill-down fields
+  if (filters.groupYear !== null) {
+    params.set('year', String(filters.groupYear))
+  }
+
+  if (filters.groupMonth !== null) {
+    params.set('month', String(filters.groupMonth))
+  }
+
+  if (filters.groupTag !== null) {
+    params.set('tag', filters.groupTag)
+  }
+
+  if (filters.groupDomain !== null) {
+    params.set('domain', filters.groupDomain)
   }
 
   // Page (only if not 1)

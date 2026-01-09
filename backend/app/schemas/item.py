@@ -144,3 +144,31 @@ class BulkProcessedResponse(BaseModel):
 
     updated_count: int = Field(..., description="Number of items updated")
     item_ids: list[str] = Field(..., description="List of updated item IDs")
+
+
+class TagCount(BaseModel):
+    """Schema for a tag with its item count."""
+
+    tag: str = Field(..., description="Tag name")
+    count: int = Field(..., ge=0, description="Number of items with this tag")
+
+
+class TagsResponse(BaseModel):
+    """Response schema for tags with counts."""
+
+    tags: list[TagCount] = Field(..., description="List of tags with counts")
+    total: int = Field(..., ge=0, description="Total number of unique tags")
+
+
+class DomainCount(BaseModel):
+    """Schema for a domain with its item count."""
+
+    domain: str = Field(..., description="Domain name (e.g., 'github.com')")
+    count: int = Field(..., ge=0, description="Number of items from this domain")
+
+
+class DomainsResponse(BaseModel):
+    """Response schema for domains with counts."""
+
+    domains: list[DomainCount] = Field(..., description="List of domains with counts")
+    total: int = Field(..., ge=0, description="Total number of unique domains")
