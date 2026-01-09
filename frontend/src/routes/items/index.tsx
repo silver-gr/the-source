@@ -4,6 +4,7 @@ import { Plus, LayoutGrid, List } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ItemFilters, ItemGrid, ItemListView, BulkActions, GroupedItemsView } from '@/features/items/components'
 import { ListItemRow } from '@/components/shared/ListItemRow'
+import { ItemDetailModal } from '@/components/shared/ItemDetailModal'
 import { useItems, useItemMutations, useItemFilters, useTagsWithCounts, useDomainsWithCounts, computeAvailableYears, getAllMonths } from '@/features/items/hooks'
 import { usePreferences } from '@/hooks/usePreferences'
 import { PaginationNav } from '@/components/shared/PaginationNav'
@@ -90,6 +91,10 @@ function ItemsPage() {
   // Selection state
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 
+  // Modal state
+  const [detailModalItem, setDetailModalItem] = useState<SavedItem | null>(null)
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
+
   // Item data
   const items = data?.items ?? []
   const totalCount = data?.total ?? 0
@@ -121,6 +126,18 @@ function ItemsPage() {
 
   const handleClearSelection = useCallback(() => {
     setSelectedIds(new Set())
+  }, [])
+
+  // Modal handlers
+  const handleInfoClick = useCallback((item: SavedItem) => {
+    setDetailModalItem(item)
+    setIsDetailModalOpen(true)
+  }, [])
+
+  const handleModalClose = useCallback(() => {
+    setIsDetailModalOpen(false)
+    // Delay clearing item to allow modal close animation
+    setTimeout(() => setDetailModalItem(null), 200)
   }, [])
 
   // Single item actions
@@ -204,6 +221,10 @@ function ItemsPage() {
   // Filter change handler
   const handleFiltersChange = useCallback(
     (newFilters: FilterState) => {
+      // Auto-set groupYear to current year when switching to date grouping
+      if (newFilters.groupBy === 'date' && newFilters.groupYear == null) {
+        newFilters = { ...newFilters, groupYear: new Date().getFullYear() }
+      }
       setFilters(newFilters)
       handleClearSelection() // Clear selection on filter change
     },
@@ -266,10 +287,11 @@ function ItemsPage() {
       item={item}
       isSelected={selectedIds.has(item.id)}
       onSelect={handleSelect}
+      onInfoClick={handleInfoClick}
       formatDate={formatCompactDate}
       index={0}
     />
-  ), [selectedIds, handleSelect, formatCompactDate])
+  ), [selectedIds, handleSelect, handleInfoClick, formatCompactDate])
 
   return (
     <div className="space-y-6">
@@ -366,6 +388,7 @@ function ItemsPage() {
           selectedIds={selectedIds}
           onSelect={handleSelect}
           onSelectAll={handleSelectAll}
+          onInfoClick={handleInfoClick}
           onMarkRead={handleMarkRead}
           onArchive={handleArchive}
           onDelete={handleDelete}
@@ -381,6 +404,7 @@ function ItemsPage() {
           selectedIds={selectedIds}
           onSelect={handleSelect}
           onSelectAll={handleSelectAll}
+          onInfoClick={handleInfoClick}
           hasMore={hasMore}
           isLoading={isLoading}
           isLoadingMore={isFetching && page > 1}
@@ -405,6 +429,16 @@ function ItemsPage() {
         onDelete={handleBulkDelete}
         onClearSelection={handleClearSelection}
         isLoading={isMutating}
+      />
+
+      {/* Item Detail Modal */}
+      <ItemDetailModal
+        item={detailModalItem}
+        open={isDetailModalOpen}
+        onOpenChange={handleModalClose}
+        onMarkRead={handleMarkRead}
+        onArchive={handleArchive}
+        onDelete={handleDelete}
       />
     </div>
   )

@@ -1,6 +1,5 @@
 import { useState, useCallback } from 'react'
-import { Link } from '@tanstack/react-router'
-import { Check, Archive, Trash2, ExternalLink } from 'lucide-react'
+import { Check, Archive, Trash2, Info } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -13,6 +12,7 @@ interface ItemCardProps {
   item: SavedItem
   isSelected: boolean
   onSelect: (id: string, selected: boolean) => void
+  onInfoClick?: (item: SavedItem) => void
   onMarkRead: (id: string) => void
   onArchive: (id: string) => void
   onDelete: (id: string) => void
@@ -23,17 +23,19 @@ interface ItemCardProps {
  * Features:
  * - Color-coded left border by source (instant visual recognition)
  * - Thumbnail preview when available
- * - Title prominently displayed (max 2 lines)
+ * - Title prominently displayed (max 2 lines) - click opens URL
  * - Source icon + status badge
  * - Tags as small badges (max 3 visible)
  * - Relative date for quick scanning
  * - Quick action buttons on hover (one-click actions)
+ * - Info icon button (opens detail modal)
  * - Checkbox for bulk selection
  */
 export function ItemCard({
   item,
   isSelected,
   onSelect,
+  onInfoClick,
   onMarkRead,
   onArchive,
   onDelete,
@@ -47,6 +49,20 @@ export function ItemCard({
     },
     [item.id, onSelect]
   )
+
+  const handleCardClick = useCallback(() => {
+    if (item.url) {
+      window.open(item.url, '_blank', 'noopener,noreferrer')
+    }
+  }, [item.url])
+
+  const handleInfoClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation()
+    e.preventDefault()
+    if (onInfoClick) {
+      onInfoClick(item)
+    }
+  }, [item, onInfoClick])
 
   const handleMarkRead = useCallback(
     (e: React.MouseEvent) => {
@@ -80,21 +96,18 @@ export function ItemCard({
   }, [])
 
   return (
-    <Link
-      to="/items/$itemId"
-      params={{ itemId: item.id }}
-      className="group block"
+    <Card
+      onClick={handleCardClick}
+      className={cn(
+        'group overflow-hidden transition-all duration-200',
+        'hover:shadow-lg hover:scale-[1.02]',
+        sourceColorClasses[item.source],
+        item.url && 'cursor-pointer',
+        isSelected && 'ring-2 ring-primary ring-offset-2'
+      )}
+      onMouseEnter={() => setShowActions(true)}
+      onMouseLeave={() => setShowActions(false)}
     >
-      <Card
-        className={cn(
-          'overflow-hidden transition-all duration-200',
-          'hover:shadow-lg hover:scale-[1.02]',
-          sourceColorClasses[item.source],
-          isSelected && 'ring-2 ring-primary ring-offset-2'
-        )}
-        onMouseEnter={() => setShowActions(true)}
-        onMouseLeave={() => setShowActions(false)}
-      >
         {/* Thumbnail Section */}
         <div className="relative aspect-video overflow-hidden bg-muted">
           {item.thumbnail_url && !item.thumbnail_url.includes('no_thumbnail') ? (
@@ -158,6 +171,17 @@ export function ItemCard({
               showActions ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0'
             )}
           >
+            {onInfoClick && (
+              <Button
+                variant="secondary"
+                size="icon"
+                className="h-7 w-7 bg-background/90 backdrop-blur-sm hover:bg-primary hover:text-primary-foreground"
+                onClick={handleInfoClick}
+                title="View Details"
+              >
+                <Info className="h-3.5 w-3.5" />
+              </Button>
+            )}
             {!item.processed && (
               <Button
                 variant="secondary"
@@ -204,12 +228,9 @@ export function ItemCard({
             </p>
           )}
 
-          {/* Meta row: date + external link */}
+          {/* Meta row: date */}
           <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
             <span>{formatRelativeTime(item.created_at)}</span>
-            {item.url && (
-              <ExternalLink className="h-3 w-3" />
-            )}
           </div>
 
           {/* Tags - Max 3 visible */}
@@ -233,7 +254,6 @@ export function ItemCard({
           )}
         </CardContent>
       </Card>
-    </Link>
   )
 }
 

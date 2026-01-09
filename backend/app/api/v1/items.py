@@ -7,9 +7,12 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.schemas.item import (
+    BulkFetchTitlesRequest,
+    BulkFetchTitlesResponse,
     BulkProcessedRequest,
     BulkProcessedResponse,
     DomainsResponse,
+    FetchTitleResponse,
     FilterParams,
     ItemCreate,
     ItemResponse,
@@ -41,6 +44,7 @@ async def list_items(
     author: str | None = Query(default=None, description="Filter by author"),
     priority_min: int | None = Query(default=None, ge=1, le=10, description="Min priority"),
     priority_max: int | None = Query(default=None, ge=1, le=10, description="Max priority"),
+    domain: str | None = Query(default=None, description="Filter by URL domain"),
     saved_after: datetime | None = Query(default=None, description="Saved after date"),
     saved_before: datetime | None = Query(default=None, description="Saved before date"),
     synced_after: datetime | None = Query(default=None, description="Synced after date"),
@@ -67,6 +71,7 @@ async def list_items(
     - **action**: Filter by action (archive, delete, favorite, etc.)
     - **author**: Filter by author (partial match)
     - **priority_min/max**: Filter by priority range
+    - **domain**: Filter by URL domain (e.g., 'reddit.com', 'github.com')
     - **saved_after/before**: Filter by saved date range
     - **synced_after/before**: Filter by sync date range
     - **search**: Full-text search across title, description, content, author, tags
@@ -83,6 +88,7 @@ async def list_items(
         author=author,
         priority_min=priority_min,
         priority_max=priority_max,
+        domain=domain,
         saved_after=saved_after,
         saved_before=saved_before,
         synced_after=synced_after,
@@ -253,3 +259,54 @@ async def bulk_mark_processed(
     - **processed**: Processed status to set (default: true)
     """
     return await service.bulk_mark_processed(request.item_ids, request.processed)
+
+
+@router.post("/{item_id}/fetch-title", response_model=FetchTitleResponse)
+async def fetch_title(
+    item_id: str,
+    service: Annotated[ItemService, Depends(get_service)],
+) -> FetchTitleResponse:
+    """Fetch and update the title for a single item from its URL.
+
+    This endpoint will:
+    1. Fetch the HTML content from the item's URL
+    2. Extract the <title> tag
+    3. Update the item's title if different
+    4. Set modified_from_source=True to track the change
+
+    - **item_id**: Unique item identifier
+    """
+    result = await service.fetch_title_for_item(item_id)
+    if result.error and result.error == "Item not found":
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Item with id '{item_id}' not found",
+        )
+    return result
+
+
+@router.post("/bulk/fetch-titles", response_model=BulkFetchTitlesResponse)
+async def bulk_fetch_titles(
+    request: BulkFetchTitlesRequest,
+    service: Annotated[ItemService, Depends(get_service)],
+) -> BulkFetchTitlesResponse:
+    """Fetch and update titles for multiple items.
+
+    This endpoint processes multiple items in batch to fetch their actual
+    page titles from URLs and update the database. Useful for fixing
+    generic titles like "Saved item from r/subreddit".
+
+    Parameters:
+    - **item_ids**: Specific item IDs to process (optional, uses filters if not provided)
+    - **source**: Filter by source platform (e.g., "reddit")
+    - **generic_only**: Only process items with generic titles (default: true)
+    - **limit**: Maximum number of items to process (max: 1000)
+
+    Returns:
+    - **total_processed**: Number of items processed
+    - **successful_updates**: Number of items successfully updated
+    - **failed_fetches**: Number of items that failed to fetch
+    - **skipped**: Number of items skipped (no URL, etc.)
+    - **items**: Detailed results for each item
+    """
+    return await service.bulk_fetch_titles(request)

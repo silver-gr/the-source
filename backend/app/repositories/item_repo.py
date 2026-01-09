@@ -52,8 +52,9 @@ class ItemRepository:
             except json.JSONDecodeError:
                 result["source_metadata"] = None
 
-        # Convert boolean
+        # Convert booleans
         result["processed"] = bool(result.get("processed", False))
+        result["modified_from_source"] = bool(result.get("modified_from_source", False))
 
         return result
 
@@ -260,6 +261,13 @@ class ItemRepository:
         if filters.synced_before:
             conditions.append("synced_at <= ?")
             params.append(filters.synced_before.isoformat())
+
+        # Domain filtering (case-insensitive URL matching)
+        if filters.domain:
+            # Normalize domain by removing www. prefix for consistent matching
+            normalized_domain = filters.domain.lower().replace("www.", "")
+            conditions.append("LOWER(REPLACE(url, 'www.', '')) LIKE ?")
+            params.append(f"%{normalized_domain}%")
 
         # Full-text search
         if filters.search:

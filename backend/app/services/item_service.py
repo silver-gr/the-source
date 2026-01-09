@@ -7,9 +7,12 @@ from typing import Any
 from app.database import Database, get_database
 from app.repositories.item_repo import ItemRepository
 from app.schemas.item import (
+    BulkFetchTitlesRequest,
+    BulkFetchTitlesResponse,
     BulkProcessedResponse,
     DomainCount,
     DomainsResponse,
+    FetchTitleResponse,
     FilterParams,
     ItemCreate,
     ItemResponse,
@@ -17,6 +20,11 @@ from app.schemas.item import (
     PaginatedResponse,
     TagCount,
     TagsResponse,
+)
+from app.services.title_fetcher import (
+    clean_title,
+    fetch_title_from_url,
+    is_generic_title,
 )
 
 logger = logging.getLogger(__name__)
@@ -231,6 +239,161 @@ class ItemService:
         domains_data = await self._repo.get_domains_with_counts()
         domains = [DomainCount(**domain) for domain in domains_data]
         return DomainsResponse(domains=domains, total=len(domains))
+
+    async def fetch_title_for_item(self, item_id: str) -> FetchTitleResponse:
+        """Fetch and update the title for a single item.
+
+        Args:
+            item_id: Item ID.
+
+        Returns:
+            FetchTitleResponse with operation result.
+        """
+        # Get the item
+        item_data = await self._repo.get_by_id(item_id)
+        if not item_data:
+            return FetchTitleResponse(
+                item_id=item_id,
+                old_title="",
+                new_title=None,
+                updated=False,
+                error="Item not found",
+            )
+
+        old_title = item_data["title"]
+        url = item_data["url"]
+
+        # Check if item has a URL
+        if not url:
+            return FetchTitleResponse(
+                item_id=item_id,
+                old_title=old_title,
+                new_title=None,
+                updated=False,
+                error="No URL to fetch from",
+            )
+
+        # Fetch the title
+        try:
+            fetched_title = await fetch_title_from_url(url)
+            if not fetched_title:
+                return FetchTitleResponse(
+                    item_id=item_id,
+                    old_title=old_title,
+                    new_title=None,
+                    updated=False,
+                    error="Failed to fetch title from URL",
+                )
+
+            # Clean the fetched title
+            new_title = clean_title(fetched_title)
+
+            # Update the item if title is different
+            if new_title != old_title:
+                update_data = ItemUpdate(
+                    title=new_title,
+                    modified_from_source=True,
+                )
+                await self._repo.update(item_id, update_data)
+                logger.info(f"Updated title for item {item_id}: {old_title} -> {new_title}")
+                return FetchTitleResponse(
+                    item_id=item_id,
+                    old_title=old_title,
+                    new_title=new_title,
+                    updated=True,
+                    error=None,
+                )
+            else:
+                return FetchTitleResponse(
+                    item_id=item_id,
+                    old_title=old_title,
+                    new_title=new_title,
+                    updated=False,
+                    error="Fetched title is the same as current title",
+                )
+
+        except Exception as e:
+            logger.error(f"Error fetching title for item {item_id}: {e}")
+            return FetchTitleResponse(
+                item_id=item_id,
+                old_title=old_title,
+                new_title=None,
+                updated=False,
+                error=str(e),
+            )
+
+    async def bulk_fetch_titles(
+        self, request: BulkFetchTitlesRequest
+    ) -> BulkFetchTitlesResponse:
+        """Fetch and update titles for multiple items.
+
+        Args:
+            request: Bulk fetch request with filters.
+
+        Returns:
+            BulkFetchTitlesResponse with operation results.
+        """
+        # Determine which items to process
+        if request.item_ids:
+            # Use specific item IDs
+            items_to_process = []
+            for item_id in request.item_ids:
+                item_data = await self._repo.get_by_id(item_id)
+                if item_data:
+                    items_to_process.append(item_data)
+        else:
+            # Build filters based on request
+            filters = FilterParams(
+                page=1,
+                page_size=request.limit or 1000,
+                source=request.source,
+            )
+            items_data, _ = await self._repo.list_items(filters)
+            items_to_process = items_data
+
+        # Filter for generic titles if requested
+        if request.generic_only:
+            items_to_process = [
+                item for item in items_to_process if is_generic_title(item["title"])
+            ]
+
+        # Process each item
+        results: list[FetchTitleResponse] = []
+        successful_updates = 0
+        failed_fetches = 0
+        skipped = 0
+
+        for item_data in items_to_process:
+            # Skip items without URLs
+            if not item_data["url"]:
+                skipped += 1
+                results.append(
+                    FetchTitleResponse(
+                        item_id=item_data["id"],
+                        old_title=item_data["title"],
+                        new_title=None,
+                        updated=False,
+                        error="No URL",
+                    )
+                )
+                continue
+
+            # Fetch and update title
+            result = await self.fetch_title_for_item(item_data["id"])
+            results.append(result)
+
+            if result.updated:
+                successful_updates += 1
+            elif result.error:
+                failed_fetches += 1
+
+        return BulkFetchTitlesResponse(
+            total_processed=len(results),
+            successful_updates=successful_updates,
+            failed_fetches=failed_fetches,
+            skipped=skipped,
+            items=results,
+        )
 
 
 # Dependency injection helper

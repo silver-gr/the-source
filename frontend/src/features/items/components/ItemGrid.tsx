@@ -11,6 +11,7 @@ interface ItemGridProps {
   selectedIds: Set<string>
   onSelect: (id: string, selected: boolean) => void
   onSelectAll: () => void
+  onInfoClick?: (item: SavedItem) => void
   onMarkRead: (id: string) => void
   onArchive: (id: string) => void
   onDelete: (id: string) => void
@@ -34,6 +35,7 @@ export function ItemGrid({
   selectedIds,
   onSelect,
   onSelectAll,
+  onInfoClick,
   onMarkRead,
   onArchive,
   onDelete,
@@ -139,6 +141,7 @@ export function ItemGrid({
             item={item}
             isSelected={selectedIds.has(item.id)}
             onSelect={onSelect}
+            onInfoClick={onInfoClick}
             onMarkRead={onMarkRead}
             onArchive={onArchive}
             onDelete={onDelete}

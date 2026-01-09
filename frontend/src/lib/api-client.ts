@@ -79,6 +79,7 @@ export const itemsApi = {
     status?: ItemStatus
     search?: string
     tags?: string[]
+    domain?: string  // Filter by URL domain
     // Sorting
     sort_by?: SortByField
     sort_order?: SortOrder
@@ -93,6 +94,7 @@ export const itemsApi = {
     if (params?.source) searchParams.set('source', params.source)
     if (params?.status) searchParams.set('status', params.status)
     if (params?.search) searchParams.set('search', params.search)
+    if (params?.domain) searchParams.set('domain', params.domain)
     if (params?.tags?.length) {
       params.tags.forEach((tag) => searchParams.append('tags', tag))
     }

@@ -12,6 +12,7 @@ interface ItemListViewProps {
   selectedIds: Set<string>
   onSelect: (id: string, selected: boolean) => void
   onSelectAll: () => void
+  onInfoClick?: (item: SavedItem) => void
   hasMore: boolean
   isLoading: boolean
   isLoadingMore: boolean
@@ -32,6 +33,7 @@ export function ItemListView({
   selectedIds,
   onSelect,
   onSelectAll,
+  onInfoClick,
   hasMore,
   isLoading,
   isLoadingMore,
@@ -177,6 +179,7 @@ export function ItemListView({
                 item={item}
                 isSelected={selectedIds.has(item.id)}
                 onSelect={onSelect}
+                onInfoClick={onInfoClick}
                 formatDate={formatCompactDate}
                 index={index}
               />

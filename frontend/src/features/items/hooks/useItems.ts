@@ -59,11 +59,11 @@ export function useItems({ filters, page, perPage }: UseItemsParams) {
         ? filters.tags
         : undefined
 
-  // Compute effective search: domain filtering adds to search
-  const effectiveSearch =
+  // Domain filter for website grouping
+  const effectiveDomain =
     filters.groupBy === 'website' && filters.groupDomain
       ? filters.groupDomain
-      : filters.search || undefined
+      : undefined
 
   return useQuery({
     queryKey: queryKeys.items.list({ ...filters, page, perPage }),
@@ -73,8 +73,9 @@ export function useItems({ filters, page, perPage }: UseItemsParams) {
         per_page: perPage,
         source: filters.sources.length === 1 ? filters.sources[0] : undefined,
         status: filters.status ?? undefined,
-        search: effectiveSearch,
+        search: filters.search || undefined,
         tags: effectiveTags,
+        domain: effectiveDomain,
         // Sorting
         sort_by: filters.sortBy,
         sort_order: filters.sortOrder,

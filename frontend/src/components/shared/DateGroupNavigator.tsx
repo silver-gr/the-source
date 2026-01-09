@@ -76,9 +76,9 @@ export function DateGroupNavigator({
 
   const handlePrevMonth = () => {
     if (selectedMonth === null) {
-      // At "All Months", go to previous year
-      if (canGoPrevYear) {
-        onYearChange(availableYears[yearIndex + 1])
+      // At "All Months", go to last available month (oldest)
+      if (availableMonths.length > 0) {
+        onMonthChange(availableMonths[availableMonths.length - 1])
       }
       return
     }
@@ -86,10 +86,9 @@ export function DateGroupNavigator({
     if (monthIndex < availableMonths.length - 1) {
       // Go to previous available month in current year
       onMonthChange(availableMonths[monthIndex + 1])
-    } else if (canGoPrevYear) {
-      // Wrap to previous year
-      onYearChange(availableYears[yearIndex + 1])
-      onMonthChange(null) // Will be set to first available month of that year
+    } else {
+      // At oldest month, wrap back to "All Months"
+      onMonthChange(null)
     }
   }
 

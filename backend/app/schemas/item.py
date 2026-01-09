@@ -29,6 +29,9 @@ class ItemBase(BaseModel):
         None, description="When the user saved it on the source platform"
     )
     priority: int = Field(default=5, ge=1, le=10, description="Priority level 1-10")
+    modified_from_source: bool = Field(
+        default=False, description="Whether title/content was auto-updated from URL"
+    )
 
 
 class ItemCreate(ItemBase):
@@ -56,6 +59,7 @@ class ItemUpdate(BaseModel):
     processed: bool | None = None
     action: str | None = None
     priority: int | None = Field(None, ge=1, le=10)
+    modified_from_source: bool | None = None
 
 
 class ItemResponse(BaseModel):
@@ -81,6 +85,7 @@ class ItemResponse(BaseModel):
     processed: bool
     action: str | None
     priority: int
+    modified_from_source: bool
 
 
 T = TypeVar("T")
@@ -115,6 +120,7 @@ class FilterParams(BaseModel):
     author: str | None = Field(None, description="Filter by author")
     priority_min: int | None = Field(None, ge=1, le=10, description="Minimum priority")
     priority_max: int | None = Field(None, ge=1, le=10, description="Maximum priority")
+    domain: str | None = Field(None, description="Filter by URL domain (e.g., 'reddit.com')")
 
     # Date filtering
     saved_after: datetime | None = Field(None, description="Filter items saved after this date")
@@ -172,3 +178,38 @@ class DomainsResponse(BaseModel):
 
     domains: list[DomainCount] = Field(..., description="List of domains with counts")
     total: int = Field(..., ge=0, description="Total number of unique domains")
+
+
+class FetchTitleResponse(BaseModel):
+    """Response schema for fetch title operation."""
+
+    item_id: str = Field(..., description="Item ID")
+    old_title: str = Field(..., description="Previous title")
+    new_title: str | None = Field(..., description="New fetched title, None if fetch failed")
+    updated: bool = Field(..., description="Whether the title was actually updated")
+    error: str | None = Field(None, description="Error message if fetch failed")
+
+
+class BulkFetchTitlesRequest(BaseModel):
+    """Request schema for bulk fetch titles operation."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    item_ids: list[str] | None = Field(
+        None, description="Specific item IDs to process. If not provided, uses filters."
+    )
+    source: str | None = Field(None, description="Filter by source platform")
+    generic_only: bool = Field(
+        default=True, description="Only fetch for items with generic titles"
+    )
+    limit: int | None = Field(None, ge=1, le=1000, description="Maximum number of items to process")
+
+
+class BulkFetchTitlesResponse(BaseModel):
+    """Response schema for bulk fetch titles operation."""
+
+    total_processed: int = Field(..., description="Number of items processed")
+    successful_updates: int = Field(..., description="Number of items successfully updated")
+    failed_fetches: int = Field(..., description="Number of items that failed to fetch")
+    skipped: int = Field(..., description="Number of items skipped (no URL, etc.)")
+    items: list[FetchTitleResponse] = Field(..., description="Details for each item")

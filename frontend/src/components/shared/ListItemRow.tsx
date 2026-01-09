@@ -1,6 +1,5 @@
 import { useCallback } from 'react'
-import { Link } from '@tanstack/react-router'
-import { ExternalLink, Check } from 'lucide-react'
+import { Info, Check } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { SourceIcon } from '@/components/shared/SourceIcon'
 import { FaviconImage } from '@/components/shared/FaviconImage'
@@ -11,6 +10,7 @@ export interface ListItemRowProps {
   item: SavedItem
   isSelected: boolean
   onSelect: (id: string, checked: boolean) => void
+  onInfoClick?: (item: SavedItem) => void
   formatDate: (date: string) => string
   index: number
 }
@@ -21,15 +21,16 @@ export interface ListItemRowProps {
  * Features:
  * - Checkbox for selection
  * - Source icon or favicon for raindrop items
- * - Truncated title with link to detail
+ * - Truncated title (click opens URL in new tab)
  * - Unprocessed indicator badge
- * - External link button
+ * - Info icon button (opens detail modal)
  * - Compact date display
  */
 export function ListItemRow({
   item,
   isSelected,
   onSelect,
+  onInfoClick,
   formatDate,
   index,
 }: ListItemRowProps) {
@@ -45,12 +46,28 @@ export function ListItemRow({
     e.stopPropagation()
   }, [])
 
+  const handleRowClick = useCallback(() => {
+    if (item.url) {
+      window.open(item.url, '_blank', 'noopener,noreferrer')
+    }
+  }, [item.url])
+
+  const handleInfoClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (onInfoClick) {
+      onInfoClick(item)
+    }
+  }, [item, onInfoClick])
+
   return (
     <div
+      onClick={handleRowClick}
       className={cn(
         'group flex items-center gap-2 px-2 py-1.5 rounded-md',
         'transition-all duration-150 ease-out',
         'hover:bg-accent/60 hover:shadow-sm',
+        'overflow-hidden',
+        item.url && 'cursor-pointer',
         isSelected && 'bg-primary/10 ring-1 ring-primary/20'
       )}
       style={{
@@ -102,24 +119,20 @@ export function ListItemRow({
         />
       )}
 
-      {/* Title with Link */}
-      <Link
-        to="/items/$itemId"
-        params={{ itemId: item.id }}
-        className="flex-1 min-w-0 group/link"
-      >
+      {/* Title - Click opens URL */}
+      <div className="flex-1 min-w-0 max-w-full">
         <span
           className={cn(
             'text-sm truncate block',
             'transition-colors duration-150',
-            'group-hover/link:text-primary',
+            'group-hover:text-primary',
             !item.processed && 'font-medium'
           )}
           title={item.title}
         >
           {item.title}
         </span>
-      </Link>
+      </div>
 
       {/* Unprocessed indicator */}
       {!item.processed && (
@@ -136,25 +149,22 @@ export function ListItemRow({
         </Badge>
       )}
 
-      {/* External Link Icon */}
-      {item.url && (
-        <a
-          href={item.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={(e) => e.stopPropagation()}
+      {/* Info Icon - Opens detail modal */}
+      {onInfoClick && (
+        <button
+          onClick={handleInfoClick}
           className={cn(
             "flex-shrink-0 p-1 rounded",
             "text-muted-foreground",
             "opacity-0 group-hover:opacity-100",
             "transition-all duration-150",
-            "hover:text-primary hover:bg-primary/10",
+            "hover:text-primary hover:bg-primary/10 hover:scale-110",
             "focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-primary"
           )}
-          title="Open in new tab"
+          title="View details"
         >
-          <ExternalLink className="h-3 w-3" />
-        </a>
+          <Info className="h-3.5 w-3.5" />
+        </button>
       )}
 
       {/* Bookmarked Date */}
