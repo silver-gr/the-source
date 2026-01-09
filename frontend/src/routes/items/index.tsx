@@ -1,10 +1,10 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { Plus, LayoutGrid, List } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ItemFilters, ItemGrid, ItemListView, BulkActions, GroupedItemsView } from '@/features/items/components'
-import { ItemCard } from '@/features/items/components/ItemCard'
-import { useItems, useItemMutations, useItemFilters } from '@/features/items/hooks'
+import { ListItemRow } from '@/components/shared/ListItemRow'
+import { useItems, useItemMutations, useItemFilters, useTagsWithCounts, useDomainsWithCounts, computeAvailableYears, getAllMonths } from '@/features/items/hooks'
 import { usePreferences } from '@/hooks/usePreferences'
 import { PaginationNav } from '@/components/shared/PaginationNav'
 import { cn } from '@/lib/utils'
@@ -72,6 +72,20 @@ function ItemsPage() {
     bulkDelete,
     isLoading: isMutating,
   } = useItemMutations()
+
+  // Fetch tags when grouping by tags
+  const { data: tagsData } = useTagsWithCounts({
+    enabled: filters.groupBy === 'tags',
+  })
+
+  // Fetch domains when grouping by website
+  const { data: domainsData } = useDomainsWithCounts({
+    enabled: filters.groupBy === 'website',
+  })
+
+  // Compute available years for date grouping
+  const availableYears = useMemo(() => computeAvailableYears(2020), [])
+  const availableMonths = useMemo(() => getAllMonths(), [])
 
   // Selection state
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
@@ -196,18 +210,66 @@ function ItemsPage() {
     [setFilters, handleClearSelection]
   )
 
-  // Render item for grouped view
+  // Date grouping handlers
+  const handleYearChange = useCallback(
+    (year: number) => {
+      setFilters({ ...filters, groupYear: year, groupMonth: null })
+      handleClearSelection()
+    },
+    [filters, setFilters, handleClearSelection]
+  )
+
+  const handleMonthChange = useCallback(
+    (month: number | null) => {
+      setFilters({ ...filters, groupMonth: month })
+      handleClearSelection()
+    },
+    [filters, setFilters, handleClearSelection]
+  )
+
+  // Tag grouping handler
+  const handleTagSelect = useCallback(
+    (tag: string | null) => {
+      setFilters({ ...filters, groupTag: tag })
+      handleClearSelection()
+    },
+    [filters, setFilters, handleClearSelection]
+  )
+
+  // Website/domain grouping handler
+  const handleDomainSelect = useCallback(
+    (domain: string | null) => {
+      setFilters({ ...filters, groupDomain: domain })
+      handleClearSelection()
+    },
+    [filters, setFilters, handleClearSelection]
+  )
+
+  // Format date for compact list display
+  const formatCompactDate = useCallback((dateString: string) => {
+    const date = new Date(dateString)
+    const now = new Date()
+    const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24))
+
+    if (diffDays === 0) return 'Today'
+    if (diffDays === 1) return 'Yesterday'
+    if (diffDays < 7) return `${diffDays}d ago`
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`
+    if (diffDays < 365) return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' })
+  }, [])
+
+  // Render item for grouped view - use compact ListItemRow for better density
   const renderItem = useCallback((item: SavedItem) => (
-    <ItemCard
+    <ListItemRow
       key={item.id}
       item={item}
       isSelected={selectedIds.has(item.id)}
       onSelect={handleSelect}
-      onMarkRead={handleMarkRead}
-      onArchive={handleArchive}
-      onDelete={handleDelete}
+      formatDate={formatCompactDate}
+      index={0}
     />
-  ), [selectedIds, handleSelect, handleMarkRead, handleArchive, handleDelete])
+  ), [selectedIds, handleSelect, formatCompactDate])
 
   return (
     <div className="space-y-6">
@@ -281,6 +343,21 @@ function ItemsPage() {
           totalItems={totalCount}
           renderItem={renderItem}
           isLoading={isLoading}
+          // Date grouping props
+          selectedYear={filters.groupYear}
+          selectedMonth={filters.groupMonth}
+          availableYears={availableYears}
+          availableMonths={availableMonths}
+          onYearChange={handleYearChange}
+          onMonthChange={handleMonthChange}
+          // Tag grouping props
+          tagsWithCounts={tagsData?.tags}
+          selectedTag={filters.groupTag}
+          onTagSelect={handleTagSelect}
+          // Website/domain grouping props
+          domainsWithCounts={domainsData?.domains}
+          selectedDomain={filters.groupDomain}
+          onDomainSelect={handleDomainSelect}
         />
       ) : effectiveViewMode === 'grid' ? (
         // Grid View

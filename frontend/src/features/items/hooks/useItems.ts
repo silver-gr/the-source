@@ -10,10 +10,61 @@ interface UseItemsParams {
 }
 
 /**
+ * Helper to compute date range from year and month
+ */
+function computeDateRangeFromYearMonth(
+  year: number | null,
+  month: number | null
+): { savedAfter: string | null; savedBefore: string | null } {
+  if (!year) {
+    return { savedAfter: null, savedBefore: null }
+  }
+
+  if (month) {
+    // Specific month in year
+    const startDate = new Date(year, month - 1, 1)
+    const endDate = new Date(year, month, 0, 23, 59, 59, 999) // Last day of month
+    return {
+      savedAfter: startDate.toISOString(),
+      savedBefore: endDate.toISOString(),
+    }
+  } else {
+    // Whole year
+    const startDate = new Date(year, 0, 1)
+    const endDate = new Date(year, 11, 31, 23, 59, 59, 999)
+    return {
+      savedAfter: startDate.toISOString(),
+      savedBefore: endDate.toISOString(),
+    }
+  }
+}
+
+/**
  * useItems hook - Fetches items with filtering and pagination
  * Uses TanStack Query for caching and automatic refetching
+ * Supports grouping filters: date (year/month), tag, and domain
  */
 export function useItems({ filters, page, perPage }: UseItemsParams) {
+  // Compute effective date range: grouping overrides manual date range
+  const dateRange =
+    filters.groupBy === 'date' && filters.groupYear
+      ? computeDateRangeFromYearMonth(filters.groupYear, filters.groupMonth)
+      : { savedAfter: filters.savedAfter, savedBefore: filters.savedBefore }
+
+  // Compute effective tags: groupTag overrides manual tags
+  const effectiveTags =
+    filters.groupBy === 'tags' && filters.groupTag
+      ? [filters.groupTag]
+      : filters.tags.length > 0
+        ? filters.tags
+        : undefined
+
+  // Compute effective search: domain filtering adds to search
+  const effectiveSearch =
+    filters.groupBy === 'website' && filters.groupDomain
+      ? filters.groupDomain
+      : filters.search || undefined
+
   return useQuery({
     queryKey: queryKeys.items.list({ ...filters, page, perPage }),
     queryFn: () =>
@@ -22,14 +73,14 @@ export function useItems({ filters, page, perPage }: UseItemsParams) {
         per_page: perPage,
         source: filters.sources.length === 1 ? filters.sources[0] : undefined,
         status: filters.status ?? undefined,
-        search: filters.search || undefined,
-        tags: filters.tags.length > 0 ? filters.tags : undefined,
+        search: effectiveSearch,
+        tags: effectiveTags,
         // Sorting
         sort_by: filters.sortBy,
         sort_order: filters.sortOrder,
         // Date range
-        saved_after: filters.savedAfter ?? undefined,
-        saved_before: filters.savedBefore ?? undefined,
+        saved_after: dateRange.savedAfter ?? undefined,
+        saved_before: dateRange.savedBefore ?? undefined,
       }),
     placeholderData: (previousData) => previousData, // Keep previous data while loading
   })
