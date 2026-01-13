@@ -8,7 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api.v1 import items, sync
+from app.api.v1 import items, sync, social
 from app.config import Settings, get_settings
 from app.database import close_database, init_database
 from app.services.item_service import reset_item_service
@@ -76,6 +76,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     # Include API routers
     app.include_router(items.router, prefix="/api/v1")
     app.include_router(sync.router, prefix="/api/v1")
+    app.include_router(social.router, prefix="/api/v1")
 
     # Health check endpoint
     @app.get("/health", tags=["health"])
