@@ -3,6 +3,8 @@ import { Info, Check } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { SourceIcon } from '@/components/shared/SourceIcon'
 import { FaviconImage } from '@/components/shared/FaviconImage'
+import { SocialBadges } from '@/components/shared/SocialBadges'
+import { useSocialMentions } from '@/features/social'
 import { cn } from '@/lib/utils'
 import type { SavedItem } from '@/types'
 
@@ -34,6 +36,8 @@ export function ListItemRow({
   formatDate,
   index,
 }: ListItemRowProps) {
+  const { data: socialData } = useSocialMentions(item.id)
+
   const handleSelectChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       e.stopPropagation()
@@ -148,6 +152,9 @@ export function ListItemRow({
           New
         </Badge>
       )}
+
+      {/* Social badges */}
+      <SocialBadges data={socialData} compact className="ml-1" />
 
       {/* Info Icon - Opens detail modal */}
       {onInfoClick && (

@@ -24,8 +24,10 @@ export interface SavedItemsResponse {
   items: SavedItem[]
   total: number
   page: number
-  per_page: number
-  has_more: boolean
+  page_size: number      // Backend uses page_size (was: per_page)
+  total_pages: number
+  has_next: boolean      // Backend uses has_next (was: has_more)
+  has_previous: boolean
 }
 
 export interface CreateSavedItemRequest {
@@ -181,4 +183,52 @@ export interface TagsResponse {
 export interface DomainsResponse {
   domains: DomainWithCount[]
   total: number
+}
+
+export interface ItemStatsResponse {
+  total_items: number
+  processed_items: number
+  unprocessed_items: number
+  source_count: number
+  items_by_source: Record<Source, number>
+}
+
+/**
+ * Social presence types for HN/Reddit discussion tracking
+ */
+export type SocialPlatform = 'hackernews' | 'reddit'
+
+export interface SocialMention {
+  id: number
+  item_id: string
+  platform: SocialPlatform
+  external_id: string
+  url: string
+  title: string | null
+  score: number
+  comment_count: number
+  posted_at: string | null
+  top_comment: string | null
+  subreddit: string | null  // Reddit only
+  author: string | null
+  checked_at: string
+}
+
+export interface SocialCheckResponse {
+  item_id: string
+  hackernews: SocialMention[]
+  reddit: SocialMention[]
+  checked_at: string
+  hn_error: string | null
+  reddit_error: string | null
+}
+
+export interface SocialMentionSummary {
+  count: number
+  top_score: number
+}
+
+export interface ItemSocialSummary {
+  hackernews?: SocialMentionSummary
+  reddit?: SocialMentionSummary
 }

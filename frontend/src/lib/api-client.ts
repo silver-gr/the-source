@@ -11,6 +11,8 @@ import type {
   SortOrder,
   TagsResponse,
   DomainsResponse,
+  ItemStatsResponse,
+  SocialCheckResponse,
 } from '@/types'
 
 const API_BASE_URL = 'http://localhost:8001/api/v1'
@@ -179,6 +181,13 @@ export const itemsApi = {
   async getDomainsWithCounts(): Promise<DomainsResponse> {
     return apiFetch<DomainsResponse>('/items/domains')
   },
+
+  /**
+   * Get item statistics including counts per source
+   */
+  async getStats(): Promise<ItemStatsResponse> {
+    return apiFetch<ItemStatsResponse>('/items/stats')
+  },
 }
 
 /**
@@ -234,12 +243,52 @@ export const tagsApi = {
 }
 
 /**
+ * Social Presence API
+ */
+export const socialApi = {
+  /**
+   * Check social presence for an item (HN + Reddit)
+   */
+  async checkSocial(itemId: string, refresh = false): Promise<SocialCheckResponse> {
+    const params = new URLSearchParams()
+    if (refresh) params.set('refresh', 'true')
+    const query = params.toString()
+    return apiFetch<SocialCheckResponse>(
+      `/items/${itemId}/check-social${query ? `?${query}` : ''}`,
+      { method: 'POST' }
+    )
+  },
+
+  /**
+   * Get cached social mentions (no API calls)
+   */
+  async getSocialMentions(itemId: string): Promise<SocialCheckResponse> {
+    return apiFetch<SocialCheckResponse>(`/items/${itemId}/social-mentions`)
+  },
+
+  /**
+   * Batch check social presence for multiple items
+   */
+  async batchCheckSocial(itemIds: string[]): Promise<{
+    results: Record<string, SocialCheckResponse>
+    failed: string[]
+    checked_at: string
+  }> {
+    return apiFetch(`/items/batch/check-social`, {
+      method: 'POST',
+      body: JSON.stringify({ item_ids: itemIds }),
+    })
+  },
+}
+
+/**
  * Export all APIs as a single object
  */
 export const api = {
   items: itemsApi,
   sync: syncApi,
   tags: tagsApi,
+  social: socialApi,
 }
 
 export default api

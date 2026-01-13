@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { SourceIcon } from '@/components/shared/SourceIcon'
 import { FaviconImage } from '@/components/shared/FaviconImage'
+import { SocialPresenceSection } from '@/components/shared/SocialPresenceSection'
 import { cn } from '@/lib/utils'
 import { formatRelativeTime } from '@/lib/utils'
 import type { SavedItem } from '@/types'
@@ -155,6 +156,13 @@ export function ItemDetailModal({
                 </Badge>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* Social Presence */}
+        {item.url && (
+          <div className="mb-4">
+            <SocialPresenceSection itemId={item.id} />
           </div>
         )}
 
