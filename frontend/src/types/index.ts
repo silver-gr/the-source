@@ -38,6 +38,8 @@ export interface CreateSavedItemRequest {
   description?: string
   thumbnail_url?: string
   tags?: string[]
+  created_at?: string  // ISO date string
+  saved_at?: string    // ISO date string
 }
 
 export interface UpdateSavedItemRequest {

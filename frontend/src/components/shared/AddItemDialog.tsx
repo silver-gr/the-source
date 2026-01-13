@@ -28,11 +28,14 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
 
   const createMutation = useMutation({
     mutationFn: async () => {
+      const now = new Date().toISOString()
       return itemsApi.createItem({
         source: 'manual',
         source_id: `manual-${Date.now()}`,
         url: url.trim(),
         title: title.trim() || url.trim(), // Use URL as title if not provided
+        created_at: now,
+        saved_at: now,
       })
     },
     onSuccess: () => {

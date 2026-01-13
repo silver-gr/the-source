@@ -167,27 +167,29 @@ export function ItemDetailModal({
         )}
 
         {/* Metadata */}
-        <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
+        <div className={`grid gap-4 mb-4 text-sm ${item.source === 'manual' ? 'grid-cols-1' : 'grid-cols-2'}`}>
           <div>
             <div className="flex items-center gap-2 text-muted-foreground mb-1">
               <Calendar className="h-4 w-4" />
-              <span>Created</span>
+              <span>{item.source === 'manual' ? 'Added' : 'Created'}</span>
             </div>
             <div className="font-medium">{formatRelativeTime(item.created_at)}</div>
             <div className="text-xs text-muted-foreground">
               {new Date(item.created_at).toLocaleString()}
             </div>
           </div>
-          <div>
-            <div className="flex items-center gap-2 text-muted-foreground mb-1">
-              <Calendar className="h-4 w-4" />
-              <span>Last Synced</span>
+          {item.source !== 'manual' && (
+            <div>
+              <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                <Calendar className="h-4 w-4" />
+                <span>Last Synced</span>
+              </div>
+              <div className="font-medium">{formatRelativeTime(item.synced_at)}</div>
+              <div className="text-xs text-muted-foreground">
+                {new Date(item.synced_at).toLocaleString()}
+              </div>
             </div>
-            <div className="font-medium">{formatRelativeTime(item.synced_at)}</div>
-            <div className="text-xs text-muted-foreground">
-              {new Date(item.synced_at).toLocaleString()}
-            </div>
-          </div>
+          )}
         </div>
 
         <Separator className="my-4" />
