@@ -72,14 +72,17 @@ bun run lint
 
 Start backend first, then frontend:
 ```bash
-# Terminal 1: Backend
+# Terminal 1: Backend (MUST use port 8001)
 cd backend && uv run uvicorn app.main:app --reload --port 8001
 
 # Terminal 2: Frontend
 cd frontend && bun run dev
 ```
 
-**Note:** Frontend API client (`src/lib/api-client.ts`) is configured for port 8001. If backend runs on 8000, update the `baseURL` or run backend on 8001.
+**⚠️ Port Configuration:**
+- Backend MUST run on port **8001** (use `--port 8001` flag)
+- Frontend API client (`src/lib/api-client.ts`) hard-codes `http://localhost:8001/api/v1`
+- Vite proxy in `vite.config.ts` targets port 8000 but is NOT used (api-client uses absolute URL)
 
 ## Architecture Overview
 
@@ -134,8 +137,20 @@ src/
 
 **Key Patterns:**
 - **Query Keys Factory:** Type-safe query keys in `query-client.ts` for cache invalidation
-- **API Proxy:** Vite dev server proxies `/api` to `http://localhost:8000`
 - **Source-Specific Styling:** Each platform (YouTube, Reddit, Instagram) has dedicated color scheme in `index.css`
+
+**Core Hooks (`src/features/items/hooks/`):**
+- `useItemFilters` - Main filter state with URL sync, pagination, sorting, grouping
+- `useGroupingData` - Fetches tags/domains with counts for group navigation
+- `useItems` - TanStack Query wrapper for fetching items with filters
+- `useItemMutations` - Mutations for update/delete/archive operations
+
+**Shared Components (`src/components/shared/`):**
+- `ListItemRow` - Reusable compact row for list views (selection, favicon, title, badges)
+- `ItemDetailModal` - Dialog for viewing item details
+- `DateGroupNavigator` - Year/month navigation for date grouping
+- `TagGroupSelector` - Tag filter sidebar with counts
+- `WebsiteGroupSidebar` - Domain filter sidebar with counts
 
 ## Database
 

@@ -5,10 +5,11 @@ import { Button } from '@/components/ui/button'
 import { ItemFilters, ItemGrid, ItemListView, BulkActions, GroupedItemsView } from '@/features/items/components'
 import { ListItemRow } from '@/components/shared/ListItemRow'
 import { ItemDetailModal } from '@/components/shared/ItemDetailModal'
-import { useItems, useItemMutations, useItemFilters, useTagsWithCounts, useDomainsWithCounts, computeAvailableYears, getAllMonths } from '@/features/items/hooks'
+import { AddItemDialog } from '@/components/shared/AddItemDialog'
+import { useItems, useItemMutations, useItemFilters, useTagsWithCounts, useDomainsWithCounts, useItemStats, computeAvailableYears, getAllMonths } from '@/features/items/hooks'
 import { usePreferences } from '@/hooks/usePreferences'
 import { PaginationNav } from '@/components/shared/PaginationNav'
-import { cn } from '@/lib/utils'
+import { cn, formatNumber } from '@/lib/utils'
 import type { FilterState, ViewMode, SavedItem } from '@/types'
 
 export const Route = createFileRoute('/items/')({
@@ -84,6 +85,9 @@ function ItemsPage() {
     enabled: filters.groupBy === 'website',
   })
 
+  // Fetch item stats for source counts
+  const { data: statsData } = useItemStats()
+
   // Compute available years for date grouping
   const availableYears = useMemo(() => computeAvailableYears(2020), [])
   const availableMonths = useMemo(() => getAllMonths(), [])
@@ -94,11 +98,12 @@ function ItemsPage() {
   // Modal state
   const [detailModalItem, setDetailModalItem] = useState<SavedItem | null>(null)
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
 
   // Item data
   const items = data?.items ?? []
   const totalCount = data?.total ?? 0
-  const hasMore = data?.has_more ?? false
+  const hasMore = data?.has_next ?? false
   const totalPages = Math.ceil(totalCount / perPage)
 
   // Selection handlers
@@ -300,8 +305,8 @@ function ItemsPage() {
         <div>
           <h1 className="text-3xl font-bold">Saved Items</h1>
           <p className="text-muted-foreground">
-            {totalCount} {totalCount === 1 ? 'item' : 'items'} total
-            {totalPages > 1 && ` · Page ${page} of ${totalPages}`}
+            {formatNumber(totalCount)} {totalCount === 1 ? 'item' : 'items'} total
+            {totalPages > 1 && ` · Page ${page} of ${formatNumber(totalPages)}`}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -332,7 +337,7 @@ function ItemsPage() {
               <List className="h-4 w-4" />
             </Button>
           </div>
-          <Button>
+          <Button onClick={() => setIsAddDialogOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
             Add Item
           </Button>
@@ -345,6 +350,7 @@ function ItemsPage() {
         onFiltersChange={handleFiltersChange}
         totalCount={totalCount}
         filteredCount={items.length}
+        sourceStats={statsData?.items_by_source}
       />
 
       {/* Top Pagination Navigation */}
@@ -439,6 +445,12 @@ function ItemsPage() {
         onMarkRead={handleMarkRead}
         onArchive={handleArchive}
         onDelete={handleDelete}
+      />
+
+      {/* Add Item Dialog */}
+      <AddItemDialog
+        open={isAddDialogOpen}
+        onOpenChange={setIsAddDialogOpen}
       />
     </div>
   )

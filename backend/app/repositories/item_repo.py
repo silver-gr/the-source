@@ -285,12 +285,21 @@ class ItemRepository:
         count_row = await self._db.fetchone(count_sql, tuple(params))
         total = count_row["count"] if count_row else 0
 
-        # Build ORDER BY clause
+        # Build ORDER BY clause with NULL handling
+        # SQLite: Use CASE to push NULLs to end for DESC, beginning for ASC
         order_direction = "DESC" if filters.sort_order == "desc" else "ASC"
-        order_clause = f"{filters.sort_by} {order_direction}"
+        sort_field = filters.sort_by
+
+        # For fields that can be NULL (saved_at, created_at), ensure consistent NULL ordering
+        if sort_field in ("saved_at", "created_at"):
+            # Push NULLs to end regardless of sort direction for better UX
+            null_position = "1" if filters.sort_order == "desc" else "0"
+            order_clause = f"CASE WHEN {sort_field} IS NULL THEN {null_position} ELSE 0 END, {sort_field} {order_direction}"
+        else:
+            order_clause = f"{sort_field} {order_direction}"
 
         # Add secondary sort for consistency
-        if filters.sort_by != "id":
+        if sort_field != "id":
             order_clause += ", id ASC"
 
         # Pagination

@@ -19,8 +19,8 @@ interface SortSelectProps {
 }
 
 const sortOptions: { value: SortField; label: string; description: string }[] = [
+  { value: 'synced_at', label: 'Date Synced', description: 'When synced (recommended)' },
   { value: 'saved_at', label: 'Date Saved', description: 'When you saved it' },
-  { value: 'synced_at', label: 'Date Synced', description: 'Last sync time' },
   { value: 'created_at', label: 'Created', description: 'Original date' },
   { value: 'title', label: 'Title', description: 'Alphabetical' },
   { value: 'priority', label: 'Priority', description: 'By importance' },

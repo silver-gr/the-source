@@ -9,7 +9,7 @@ import { SourceIcon } from '@/components/shared/SourceIcon'
 import { DateRangePicker } from '@/components/shared/DateRangePicker'
 import { SortSelect } from '@/components/shared/SortSelect'
 import { GroupBySelect, type GroupByOption } from '@/components/shared/GroupBySelect'
-import { cn } from '@/lib/utils'
+import { cn, formatNumber } from '@/lib/utils'
 import type { Source, ItemStatus, FilterState, SortByField, SortOrder } from '@/types'
 import { SOURCE_METADATA, STATUS_METADATA } from '@/types'
 
@@ -18,6 +18,8 @@ interface ItemFiltersProps {
   onFiltersChange: (filters: FilterState) => void
   totalCount: number
   filteredCount: number
+  /** Item counts per source for display, e.g., { youtube: 45, reddit: 355 } */
+  sourceStats?: Partial<Record<Source, number>>
 }
 
 const ALL_SOURCES: Source[] = ['youtube', 'reddit', 'raindrop', 'instagram', 'facebook', 'telegram', 'manual']
@@ -41,6 +43,7 @@ export function ItemFilters({
   onFiltersChange,
   totalCount,
   filteredCount,
+  sourceStats = {},
 }: ItemFiltersProps) {
   // Local search state for immediate UI feedback
   const [searchInput, setSearchInput] = useState(filters.search)
@@ -139,7 +142,7 @@ export function ItemFilters({
       status: null,
       search: '',
       tags: [],
-      sortBy: 'saved_at',
+      sortBy: 'synced_at',  // Default to synced_at (always has value)
       sortOrder: 'desc',
       savedAfter: null,
       savedBefore: null,
@@ -275,6 +278,7 @@ export function ItemFilters({
               <span className="text-sm text-muted-foreground mr-1">Source:</span>
               {ALL_SOURCES.map((source) => {
                 const isActive = filters.sources.includes(source)
+                const count = sourceStats[source]
                 return (
                   <Button
                     key={source}
@@ -294,6 +298,9 @@ export function ItemFilters({
                     <SourceIcon source={source} size="sm" />
                     <span className="hidden sm:inline">
                       {SOURCE_METADATA[source].label}
+                      {count !== undefined && (
+                        <span className="ml-1 opacity-75">({formatNumber(count)})</span>
+                      )}
                     </span>
                   </Button>
                 )
@@ -337,7 +344,7 @@ export function ItemFilters({
             >
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-sm text-muted-foreground">
-                  Showing <span className="font-medium text-foreground">{filteredCount}</span> of {totalCount} items
+                  Showing <span className="font-medium text-foreground">{formatNumber(filteredCount)}</span> of {formatNumber(totalCount)} items
                 </span>
                 {filters.search && (
                   <Badge

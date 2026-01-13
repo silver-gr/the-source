@@ -20,7 +20,7 @@ const DEFAULT_FILTERS: FilterState = {
   status: null,
   search: '',
   tags: [],
-  sortBy: 'saved_at',
+  sortBy: 'synced_at',  // Use synced_at as default (always has value, unlike saved_at which can be NULL)
   sortOrder: 'desc',
   savedAfter: null,
   savedBefore: null,
@@ -173,7 +173,7 @@ function serializeFiltersToUrl(
   }
 
   // Sort (only if not default)
-  if (filters.sortBy !== 'saved_at' || filters.sortOrder !== 'desc') {
+  if (filters.sortBy !== 'synced_at' || filters.sortOrder !== 'desc') {
     params.set('sort', `${filters.sortBy}:${filters.sortOrder}`)
   }
 

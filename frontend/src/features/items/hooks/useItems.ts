@@ -142,15 +142,14 @@ export function useRecentItems(limit: number = 5) {
 }
 
 /**
- * useItemsStats hook - Fetches items for calculating stats
+ * useItemStats hook - Fetches item statistics from the API
+ * Returns total counts and counts per source
  */
-export function useItemsStats() {
+export function useItemStats() {
   return useQuery({
-    queryKey: queryKeys.items.lists(),
-    queryFn: () =>
-      api.items.getItems({
-        per_page: 100, // Fetch enough to calculate meaningful stats
-      }),
+    queryKey: ['items', 'stats'],
+    queryFn: () => api.items.getStats(),
+    staleTime: 30 * 1000, // 30 seconds - stats don't need to be super fresh
   })
 }
 

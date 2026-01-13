@@ -70,3 +70,11 @@ export function debounce<T extends (...args: unknown[]) => unknown>(
     timeoutId = setTimeout(() => fn(...args), delay)
   }
 }
+
+/**
+ * Format a number with dot as thousand separator (European style)
+ * e.g., 34053 → "34.053", 1234567 → "1.234.567"
+ */
+export function formatNumber(num: number): string {
+  return num.toLocaleString('de-DE')
+}
