@@ -1,5 +1,5 @@
 import { useCallback } from 'react'
-import { Info, Check } from 'lucide-react'
+import { Info, Check, Link2Off, EyeOff } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { SourceIcon } from '@/components/shared/SourceIcon'
 import { FaviconImage } from '@/components/shared/FaviconImage'
@@ -67,12 +67,12 @@ export function ListItemRow({
     <div
       onClick={handleRowClick}
       className={cn(
-        'group flex items-center gap-2 px-2 py-1.5 rounded-md',
-        'transition-all duration-150 ease-out',
-        'hover:bg-accent/60 hover:shadow-sm',
-        'overflow-hidden',
+        'group flex items-center gap-3 px-3 py-2 rounded-lg',
+        'transition-all duration-200 ease-out',
+        'hover:bg-accent/70 hover:shadow-sm',
+        'border border-transparent',
         item.url && 'cursor-pointer',
-        isSelected && 'bg-primary/10 ring-1 ring-primary/20'
+        isSelected && 'bg-primary/8 border-primary/20 shadow-sm'
       )}
       style={{
         animationDelay: `${Math.min(index * 10, 500)}ms`,
@@ -82,11 +82,13 @@ export function ListItemRow({
       <div
         onClick={handleCheckboxClick}
         className={cn(
-          "relative flex h-3.5 w-3.5 items-center justify-center",
-          "rounded border-2 border-muted-foreground/40",
-          "transition-all duration-150",
-          "hover:border-primary hover:scale-110",
-          isSelected && "bg-primary border-primary"
+          "relative flex h-4 w-4 items-center justify-center flex-shrink-0",
+          "rounded border-2",
+          "transition-all duration-200",
+          "hover:scale-110",
+          isSelected
+            ? "bg-primary border-primary"
+            : "border-muted-foreground/30 hover:border-primary/60"
         )}
       >
         <input
@@ -107,7 +109,7 @@ export function ListItemRow({
           size="sm"
           className={cn(
             "flex-shrink-0",
-            "transition-transform duration-150",
+            "transition-transform duration-200",
             "group-hover:scale-110"
           )}
         />
@@ -117,18 +119,18 @@ export function ListItemRow({
           size="sm"
           className={cn(
             "flex-shrink-0",
-            "transition-transform duration-150",
+            "transition-transform duration-200",
             "group-hover:scale-110"
           )}
         />
       )}
 
       {/* Title - Click opens URL */}
-      <div className="flex-1 min-w-0 max-w-full">
+      <div className="flex-1 min-w-0">
         <span
           className={cn(
-            'text-sm truncate block',
-            'transition-colors duration-150',
+            'text-sm truncate block leading-snug',
+            'transition-colors duration-200',
             'group-hover:text-primary',
             !item.processed && 'font-medium'
           )}
@@ -138,47 +140,82 @@ export function ListItemRow({
         </span>
       </div>
 
-      {/* Unprocessed indicator */}
-      {!item.processed && (
-        <Badge
-          variant="unprocessed"
-          className={cn(
-            "text-[10px] px-1.5 py-0 h-4 flex-shrink-0",
-            "animate-pulse",
-            "bg-amber-400/90 text-amber-950",
-            "shadow-sm shadow-amber-400/30"
-          )}
-        >
-          New
-        </Badge>
-      )}
+      {/* Badges container */}
+      <div className="flex items-center gap-1.5 flex-shrink-0">
+        {/* Unprocessed indicator */}
+        {!item.processed && (
+          <Badge
+            variant="unprocessed"
+            className={cn(
+              "text-[10px] px-1.5 py-0 h-5",
+              "bg-amber-500/90 text-white font-semibold",
+              "shadow-sm shadow-amber-500/20",
+              "animate-subtle-pulse"
+            )}
+          >
+            New
+          </Badge>
+        )}
 
-      {/* Social badges */}
-      <SocialBadges data={socialData} compact className="ml-1" />
+        {/* Dead link indicator */}
+        {item.link_status === 'broken' && (
+          <Badge
+            variant="destructive"
+            className={cn(
+              "text-[10px] px-1.5 py-0 h-5",
+              "bg-red-500/90 text-white",
+              "shadow-sm shadow-red-500/20",
+              "flex items-center gap-0.5"
+            )}
+          >
+            <Link2Off className="h-2.5 w-2.5" />
+            Dead
+          </Badge>
+        )}
+
+        {/* NSFW indicator */}
+        {(item.nsfw_status === 'nsfw' || item.nsfw_status === 'explicit') && (
+          <Badge
+            variant="outline"
+            className={cn(
+              "text-[10px] px-1.5 py-0 h-5",
+              "bg-pink-500/90 text-white border-pink-600",
+              "shadow-sm shadow-pink-500/20",
+              "flex items-center gap-0.5"
+            )}
+          >
+            <EyeOff className="h-2.5 w-2.5" />
+            {item.nsfw_status === 'explicit' ? '18+' : 'NSFW'}
+          </Badge>
+        )}
+
+        {/* Social badges */}
+        <SocialBadges data={socialData} compact className="ml-0.5" />
+      </div>
 
       {/* Info Icon - Opens detail modal */}
       {onInfoClick && (
         <button
           onClick={handleInfoClick}
           className={cn(
-            "flex-shrink-0 p-1 rounded",
+            "flex-shrink-0 p-1.5 rounded-md",
             "text-muted-foreground",
             "opacity-0 group-hover:opacity-100",
-            "transition-all duration-150",
+            "transition-all duration-200",
             "hover:text-primary hover:bg-primary/10 hover:scale-110",
             "focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-primary"
           )}
           title="View details"
         >
-          <Info className="h-3.5 w-3.5" />
+          <Info className="h-4 w-4" />
         </button>
       )}
 
       {/* Bookmarked Date */}
       <span
         className={cn(
-          "text-xs text-muted-foreground w-16 text-right flex-shrink-0",
-          "transition-colors duration-150",
+          "text-xs text-muted-foreground w-16 text-right flex-shrink-0 font-mono",
+          "transition-colors duration-200",
           "group-hover:text-foreground/70"
         )}
       >

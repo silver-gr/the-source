@@ -1,5 +1,6 @@
 import { Outlet } from '@tanstack/react-router'
 import { Sidebar } from './Sidebar'
+import { ReviewFAB } from '@/features/review'
 
 export function AppLayout() {
   return (
@@ -10,6 +11,8 @@ export function AppLayout() {
           <Outlet />
         </div>
       </main>
+      {/* Reddit Review FAB - Always visible */}
+      <ReviewFAB />
     </div>
   )
 }

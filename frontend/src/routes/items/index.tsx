@@ -1,12 +1,12 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useState, useCallback, useMemo } from 'react'
-import { Plus, LayoutGrid, List } from 'lucide-react'
+import { Plus, LayoutGrid, List, Bookmark } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ItemFilters, ItemGrid, ItemListView, BulkActions, GroupedItemsView } from '@/features/items/components'
 import { ListItemRow } from '@/components/shared/ListItemRow'
 import { ItemDetailModal } from '@/components/shared/ItemDetailModal'
 import { AddItemDialog } from '@/components/shared/AddItemDialog'
-import { useItems, useItemMutations, useItemFilters, useTagsWithCounts, useDomainsWithCounts, useItemStats, computeAvailableYears, getAllMonths } from '@/features/items/hooks'
+import { useItems, useItemMutations, useItemFilters, useTagsWithCounts, useDomainsWithCounts, useSubredditsWithCounts, useItemStats, computeAvailableYears, getAllMonths } from '@/features/items/hooks'
 import { usePreferences } from '@/hooks/usePreferences'
 import { PaginationNav } from '@/components/shared/PaginationNav'
 import { cn, formatNumber } from '@/lib/utils'
@@ -16,7 +16,7 @@ export const Route = createFileRoute('/items/')({
   component: ItemsPage,
 })
 
-const PER_PAGE_GRID = 20
+const PER_PAGE_GRID = 100
 const PER_PAGE_LIST = 150
 
 /**
@@ -83,6 +83,11 @@ function ItemsPage() {
   // Fetch domains when grouping by website
   const { data: domainsData } = useDomainsWithCounts({
     enabled: filters.groupBy === 'website',
+  })
+
+  // Fetch subreddits when grouping by subreddit
+  const { data: subredditsData } = useSubredditsWithCounts({
+    enabled: filters.groupBy === 'subreddit',
   })
 
   // Fetch item stats for source counts
@@ -271,6 +276,15 @@ function ItemsPage() {
     [filters, setFilters, handleClearSelection]
   )
 
+  // Subreddit grouping handler
+  const handleSubredditSelect = useCallback(
+    (subreddit: string | null) => {
+      setFilters({ ...filters, groupSubreddit: subreddit })
+      handleClearSelection()
+    },
+    [filters, setFilters, handleClearSelection]
+  )
+
   // Format date for compact list display
   const formatCompactDate = useCallback((dateString: string) => {
     const date = new Date(dateString)
@@ -299,50 +313,82 @@ function ItemsPage() {
   ), [selectedIds, handleSelect, handleInfoClick, formatCompactDate])
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-slide-up">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Saved Items</h1>
-          <p className="text-muted-foreground">
-            {formatNumber(totalCount)} {totalCount === 1 ? 'item' : 'items'} total
-            {totalPages > 1 && ` · Page ${page} of ${formatNumber(totalPages)}`}
+          <div className="flex items-center gap-3 mb-1">
+            <div className="p-2 rounded-lg bg-primary/10">
+              <Bookmark className="h-6 w-6 text-primary" />
+            </div>
+            <h1 className="text-4xl font-semibold tracking-tight">
+              Saved Items
+            </h1>
+          </div>
+          <p className="text-muted-foreground flex items-center gap-2">
+            <span className="font-mono text-foreground font-semibold">
+              {formatNumber(totalCount)}
+            </span>
+            <span>{totalCount === 1 ? 'item' : 'items'} total</span>
+            {totalPages > 1 && (
+              <>
+                <span className="text-border">·</span>
+                <span>
+                  Page <span className="font-mono font-medium">{page}</span> of{' '}
+                  <span className="font-mono font-medium">{formatNumber(totalPages)}</span>
+                </span>
+              </>
+            )}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           {/* View Mode Toggle */}
-          <div className="flex rounded-md border">
-            <Button
-              variant="ghost"
-              size="sm"
+          <div
+            className={cn(
+              'flex rounded-lg border bg-muted/50 p-1',
+              'shadow-sm'
+            )}
+          >
+            <button
               onClick={() => handleViewModeChange('grid')}
               className={cn(
-                'rounded-r-none',
-                effectiveViewMode === 'grid' && 'bg-accent'
+                'flex items-center justify-center rounded-md px-3 py-1.5',
+                'transition-all duration-200',
+                effectiveViewMode === 'grid'
+                  ? 'bg-background shadow-sm text-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
               )}
               title="Grid view"
             >
               <LayoutGrid className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
+            </button>
+            <button
               onClick={() => handleViewModeChange('list')}
               className={cn(
-                'rounded-l-none',
-                effectiveViewMode === 'list' && 'bg-accent'
+                'flex items-center justify-center rounded-md px-3 py-1.5',
+                'transition-all duration-200',
+                effectiveViewMode === 'list'
+                  ? 'bg-background shadow-sm text-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
               )}
               title="List view (150 items)"
             >
               <List className="h-4 w-4" />
-            </Button>
+            </button>
           </div>
-          <Button onClick={() => setIsAddDialogOpen(true)}>
+          <Button
+            onClick={() => setIsAddDialogOpen(true)}
+            className={cn(
+              'transition-all duration-200',
+              'hover:shadow-lg hover:shadow-primary/25 hover:scale-[1.02]',
+              'active:scale-[0.98]'
+            )}
+          >
             <Plus className="mr-2 h-4 w-4" />
             Add Item
           </Button>
         </div>
-      </div>
+      </header>
 
       {/* Filters */}
       <ItemFilters
@@ -386,6 +432,10 @@ function ItemsPage() {
           domainsWithCounts={domainsData?.domains}
           selectedDomain={filters.groupDomain}
           onDomainSelect={handleDomainSelect}
+          // Subreddit grouping props
+          subredditsWithCounts={subredditsData?.subreddits}
+          selectedSubreddit={filters.groupSubreddit}
+          onSubredditSelect={handleSubredditSelect}
         />
       ) : effectiveViewMode === 'grid' ? (
         // Grid View

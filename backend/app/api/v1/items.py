@@ -1,6 +1,7 @@
 """API endpoints for Items."""
 
 import logging
+import re
 from datetime import datetime
 from typing import Annotated, Any
 
@@ -18,9 +19,13 @@ from app.schemas.item import (
     ItemResponse,
     ItemUpdate,
     PaginatedResponse,
+    RedditPostDetails,
+    ReviewActionRequest,
+    SubredditsResponse,
     TagsResponse,
 )
 from app.services.item_service import ItemService, get_item_service
+from app.services.reddit_fetcher import RedditFetcher, get_reddit_fetcher
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +50,13 @@ async def list_items(
     priority_min: int | None = Query(default=None, ge=1, le=10, description="Min priority"),
     priority_max: int | None = Query(default=None, ge=1, le=10, description="Max priority"),
     domain: str | None = Query(default=None, description="Filter by URL domain"),
+    link_status: str | None = Query(default=None, description="Filter by link health: ok, broken, unchecked"),
+    exclude_broken: bool | None = Query(default=None, description="Exclude broken links"),
+    nsfw_status: str | None = Query(default=None, description="Filter by NSFW status: unknown, safe, nsfw, explicit"),
+    exclude_nsfw: bool | None = Query(default=None, description="Exclude NSFW/explicit content"),
+    due_for_review: bool | None = Query(default=None, description="Filter items due for review"),
+    subreddit: str | None = Query(default=None, description="Filter by subreddit"),
+    subreddits: list[str] | None = Query(default=None, description="Filter by multiple subreddits"),
     saved_after: datetime | None = Query(default=None, description="Saved after date"),
     saved_before: datetime | None = Query(default=None, description="Saved before date"),
     synced_after: datetime | None = Query(default=None, description="Synced after date"),
@@ -72,6 +84,9 @@ async def list_items(
     - **author**: Filter by author (partial match)
     - **priority_min/max**: Filter by priority range
     - **domain**: Filter by URL domain (e.g., 'reddit.com', 'github.com')
+    - **due_for_review**: Filter items that are due for spaced repetition review
+    - **subreddit**: Filter by single subreddit (Reddit items only)
+    - **subreddits**: Filter by multiple subreddits (Reddit items only)
     - **saved_after/before**: Filter by saved date range
     - **synced_after/before**: Filter by sync date range
     - **search**: Full-text search across title, description, content, author, tags
@@ -89,6 +104,13 @@ async def list_items(
         priority_min=priority_min,
         priority_max=priority_max,
         domain=domain,
+        link_status=link_status,  # type: ignore
+        exclude_broken=exclude_broken,
+        nsfw_status=nsfw_status,  # type: ignore
+        exclude_nsfw=exclude_nsfw,
+        due_for_review=due_for_review,
+        subreddit=subreddit,
+        subreddits=subreddits,
         saved_after=saved_after,
         saved_before=saved_before,
         synced_after=synced_after,
@@ -157,6 +179,22 @@ async def get_domains(
         - total: Total number of unique domains
     """
     return await service.get_domains()
+
+
+@router.get("/subreddits", response_model=SubredditsResponse)
+async def get_subreddits(
+    service: Annotated[ItemService, Depends(get_service)],
+) -> SubredditsResponse:
+    """Get all unique subreddits with item counts.
+
+    Extracts subreddit from source_metadata for Reddit items.
+    Results are sorted by count descending.
+
+    Returns:
+        - subreddits: List of subreddits with their item counts
+        - total: Total number of unique subreddits
+    """
+    return await service.get_subreddits()
 
 
 @router.get("/{item_id}", response_model=ItemResponse)
@@ -310,3 +348,122 @@ async def bulk_fetch_titles(
     - **items**: Detailed results for each item
     """
     return await service.bulk_fetch_titles(request)
+
+
+@router.post("/{item_id}/review", response_model=ItemResponse)
+async def apply_review_action(
+    item_id: str,
+    request: ReviewActionRequest,
+    service: Annotated[ItemService, Depends(get_service)],
+) -> ItemResponse:
+    """Apply a review action to an item for spaced repetition.
+
+    This endpoint schedules the item for future review based on the action:
+    - **tomorrow**: Schedule for review in 1 day
+    - **week**: Schedule for review in 7 days
+    - **archive**: Schedule for review in 30 days and mark as archived
+
+    The review_count is incremented and last_reviewed_at is updated.
+
+    - **item_id**: Unique item identifier
+    """
+    item = await service.apply_review_action(item_id, request.action, request.reddit_details)
+    if not item:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Item with id '{item_id}' not found",
+        )
+    return item
+
+
+def get_fetcher() -> RedditFetcher:
+    """Dependency to get RedditFetcher instance."""
+    return get_reddit_fetcher()
+
+
+@router.get("/{item_id}/reddit-details", response_model=RedditPostDetails)
+async def get_reddit_details(
+    item_id: str,
+    service: Annotated[ItemService, Depends(get_service)],
+    fetcher: Annotated[RedditFetcher, Depends(get_fetcher)],
+    comment_limit: int = Query(default=30, ge=1, le=30, description="Number of top comments to fetch"),
+    force_refresh: bool = Query(default=False, description="Force fetch from Reddit API even if cached"),
+) -> RedditPostDetails:
+    """Fetch full Reddit post details including top comments.
+
+    This endpoint retrieves detailed information about a Reddit post,
+    including the post content and top comments sorted by score.
+
+    If the item has cached reddit_details (from a previous review action),
+    those are returned immediately. Use force_refresh=true to bypass cache.
+
+    Only works for items with source='reddit'. The source_id from the
+    item's source_metadata is used to fetch from Reddit's API.
+
+    - **item_id**: Unique item identifier
+    - **comment_limit**: Number of top comments to return (1-30, default: 30)
+    - **force_refresh**: Force fetch from Reddit API even if cached
+
+    Returns:
+        - Post title, selftext (body), URL, author, subreddit
+        - Post score, comment count, creation date
+        - Top N comments with author, body, score, and creation date
+    """
+    # Get the item from database
+    item = await service.get_item(item_id)
+    if not item:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Item with id '{item_id}' not found",
+        )
+
+    # Verify it's a Reddit item
+    if item.source != "reddit":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Item is not from Reddit (source: {item.source})",
+        )
+
+    # Return cached reddit_details if available and not forcing refresh
+    if item.reddit_details and not force_refresh:
+        return RedditPostDetails.model_validate(item.reddit_details)
+
+    # Extract the Reddit submission ID from the item
+    # For submissions, source_id is the Reddit ID (e.g., "abc123")
+    # For comments, source_id is prefixed with "c_" (e.g., "c_xyz789")
+    source_id = item.source_id
+
+    if source_id.startswith("c_"):
+        # This is a saved comment, not a submission
+        # Try to get the parent submission ID from metadata
+        if item.source_metadata and "submission_id" in item.source_metadata:
+            source_id = item.source_metadata["submission_id"]
+        elif item.url:
+            # Try to extract submission ID from URL
+            # URL format: https://www.reddit.com/r/subreddit/comments/{submission_id}/...
+            match = re.search(r"/comments/([a-z0-9]+)", item.url)
+            if match:
+                source_id = match.group(1)
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Could not extract submission ID from comment URL",
+                )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="This is a saved comment without a linked submission ID or URL",
+            )
+
+    try:
+        return await fetcher.fetch_post_details(source_id, comment_limit)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(e),
+        )
+    except RuntimeError as e:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=str(e),
+        )

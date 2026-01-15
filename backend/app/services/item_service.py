@@ -2,7 +2,8 @@
 
 import logging
 import math
-from typing import Any
+from datetime import datetime, timedelta
+from typing import Any, Literal
 
 from app.database import Database, get_database
 from app.repositories.item_repo import ItemRepository
@@ -18,6 +19,8 @@ from app.schemas.item import (
     ItemResponse,
     ItemUpdate,
     PaginatedResponse,
+    SubredditCount,
+    SubredditsResponse,
     TagCount,
     TagsResponse,
 )
@@ -239,6 +242,81 @@ class ItemService:
         domains_data = await self._repo.get_domains_with_counts()
         domains = [DomainCount(**domain) for domain in domains_data]
         return DomainsResponse(domains=domains, total=len(domains))
+
+    async def get_subreddits(self) -> SubredditsResponse:
+        """Get all unique subreddits with item counts.
+
+        Returns:
+            SubredditsResponse with list of subreddits and total count.
+        """
+        subreddits_data = await self._repo.get_subreddits_with_counts()
+        subreddits = [SubredditCount(**sr) for sr in subreddits_data]
+        return SubredditsResponse(subreddits=subreddits, total=len(subreddits))
+
+    async def apply_review_action(
+        self,
+        item_id: str,
+        action: Literal["tomorrow", "week", "archive"],
+        reddit_details: dict[str, Any] | None = None,
+    ) -> ItemResponse | None:
+        """Apply a review action to an item, scheduling it for future review.
+
+        Args:
+            item_id: Item ID.
+            action: Review action to apply:
+                - "tomorrow": Schedule for review in 1 day
+                - "week": Schedule for review in 7 days
+                - "archive": Schedule for review in 30 days and set action to "archive"
+            reddit_details: Optional Reddit post details to cache for archived/processed items.
+
+        Returns:
+            Updated ItemResponse or None if item not found.
+        """
+        # Get existing item
+        item_data = await self._repo.get_by_id(item_id)
+        if not item_data:
+            return None
+
+        now = datetime.utcnow()
+
+        # Calculate next_review_at based on action
+        if action == "tomorrow":
+            next_review = now + timedelta(days=1)
+            item_action = None
+        elif action == "week":
+            next_review = now + timedelta(days=7)
+            item_action = None
+        else:  # archive
+            next_review = now + timedelta(days=30)
+            item_action = "archive"
+
+        # Increment review count
+        current_count = item_data.get("review_count") or 0
+
+        # Build update
+        update = ItemUpdate(
+            next_review_at=next_review,
+            review_count=current_count + 1,
+            last_reviewed_at=now,
+        )
+
+        # Only set action for archive
+        if item_action:
+            update.action = item_action
+
+        # Cache Reddit details if provided (typically when archiving)
+        if reddit_details:
+            update.reddit_details = reddit_details
+
+        updated_data = await self._repo.update(item_id, update)
+        if not updated_data:
+            return None
+
+        logger.info(
+            f"Applied review action '{action}' to item {item_id}, "
+            f"next review at {next_review.isoformat()}"
+        )
+        return ItemResponse.model_validate(updated_data)
 
     async def fetch_title_for_item(self, item_id: str) -> FetchTitleResponse:
         """Fetch and update the title for a single item.

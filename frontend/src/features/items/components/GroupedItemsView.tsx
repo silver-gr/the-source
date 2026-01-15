@@ -8,6 +8,7 @@ import { SourceIcon } from '@/components/shared/SourceIcon'
 import { DateGroupNavigator } from '@/components/shared/DateGroupNavigator'
 import { TagGroupSelector } from '@/components/shared/TagGroupSelector'
 import { WebsiteGroupSidebar } from '@/components/shared/WebsiteGroupSidebar'
+import { SubredditGroupSidebar } from '@/components/shared/SubredditGroupSidebar'
 import type { SavedItem, Source } from '@/types'
 import type { GroupByOption } from '@/components/shared/GroupBySelect'
 
@@ -33,6 +34,11 @@ interface GroupedItemsViewProps {
   domainsWithCounts?: Array<{ domain: string; count: number }>
   selectedDomain?: string | null
   onDomainSelect?: (domain: string | null) => void
+
+  // For subreddit grouping (required when groupBy === 'subreddit')
+  subredditsWithCounts?: Array<{ subreddit: string; count: number }>
+  selectedSubreddit?: string | null
+  onSubredditSelect?: (subreddit: string | null) => void
 
   // Common
   renderItem: (item: SavedItem) => ReactNode
@@ -300,6 +306,10 @@ export function GroupedItemsView({
   domainsWithCounts,
   selectedDomain,
   onDomainSelect,
+  // Subreddit grouping props
+  subredditsWithCounts,
+  selectedSubreddit,
+  onSubredditSelect,
   // Common props
   renderItem,
   isLoading,
@@ -384,7 +394,24 @@ export function GroupedItemsView({
           selectedDomain={selectedDomain ?? null}
           onDomainSelect={onDomainSelect ?? (() => {})}
         />
-        <div className="flex-1">
+        <div className="flex-1 min-w-0 overflow-hidden">
+          {renderLoadingOverlay()}
+          {renderItemList()}
+        </div>
+      </div>
+    )
+  }
+
+  // Subreddit grouping - sidebar + main content
+  if (groupBy === 'subreddit') {
+    return (
+      <div className={cn('flex gap-4', className)}>
+        <SubredditGroupSidebar
+          subreddits={subredditsWithCounts ?? []}
+          selectedSubreddit={selectedSubreddit ?? null}
+          onSubredditSelect={onSubredditSelect ?? (() => {})}
+        />
+        <div className="flex-1 min-w-0 overflow-hidden">
           {renderLoadingOverlay()}
           {renderItemList()}
         </div>

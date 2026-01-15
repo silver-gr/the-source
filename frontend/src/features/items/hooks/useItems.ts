@@ -65,23 +65,47 @@ export function useItems({ filters, page, perPage }: UseItemsParams) {
       ? filters.groupDomain
       : undefined
 
+  // Subreddit filter for subreddit grouping
+  const effectiveSubreddit =
+    filters.groupBy === 'subreddit' && filters.groupSubreddit
+      ? filters.groupSubreddit
+      : undefined
+
+  // Link filter: working = exclude broken, broken = only broken
+  const linkStatusFilter =
+    filters.linkFilter === 'broken' ? 'broken' as const : undefined
+  const excludeBrokenLinks = filters.linkFilter === 'working'
+
+  // NSFW filter: safe = exclude nsfw/explicit, nsfw = only nsfw/explicit
+  const nsfwStatusFilter =
+    filters.nsfwFilter === 'nsfw' ? 'nsfw' as const : undefined
+  const excludeNsfwContent = filters.nsfwFilter === 'safe'
+
   return useQuery({
     queryKey: queryKeys.items.list({ ...filters, page, perPage }),
     queryFn: () =>
       api.items.getItems({
         page,
         per_page: perPage,
-        source: filters.sources.length === 1 ? filters.sources[0] : undefined,
+        // Use sources array when filtering by sources (supports 1 or more)
+        sources: filters.sources.length > 0 ? filters.sources : undefined,
         status: filters.status ?? undefined,
         search: filters.search || undefined,
         tags: effectiveTags,
         domain: effectiveDomain,
+        subreddit: effectiveSubreddit,
         // Sorting
         sort_by: filters.sortBy,
         sort_order: filters.sortOrder,
         // Date range
         saved_after: dateRange.savedAfter ?? undefined,
         saved_before: dateRange.savedBefore ?? undefined,
+        // Link health filter
+        link_status: linkStatusFilter,
+        exclude_broken: excludeBrokenLinks || undefined,
+        // NSFW filter
+        nsfw_status: nsfwStatusFilter,
+        exclude_nsfw: excludeNsfwContent || undefined,
       }),
     placeholderData: (previousData) => previousData, // Keep previous data while loading
   })
@@ -98,7 +122,8 @@ export function useItemsSuspense({ filters, page, perPage }: UseItemsParams) {
       api.items.getItems({
         page,
         per_page: perPage,
-        source: filters.sources.length === 1 ? filters.sources[0] : undefined,
+        // Use sources array when filtering by sources (supports 1 or more)
+        sources: filters.sources.length > 0 ? filters.sources : undefined,
         status: filters.status ?? undefined,
         search: filters.search || undefined,
         tags: filters.tags.length > 0 ? filters.tags : undefined,

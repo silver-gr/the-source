@@ -6,6 +6,10 @@ export type Source = 'youtube' | 'reddit' | 'instagram' | 'raindrop' | 'facebook
 
 export type ItemStatus = 'unprocessed' | 'read' | 'archived'
 
+export type LinkStatus = 'ok' | 'broken' | 'unchecked'
+
+export type NsfwStatus = 'unknown' | 'safe' | 'nsfw' | 'explicit'
+
 export interface SavedItem {
   id: string
   source: Source
@@ -18,6 +22,17 @@ export interface SavedItem {
   processed: boolean
   created_at: string
   synced_at: string
+  link_status: LinkStatus | null
+  last_link_check: string | null
+  nsfw_status: NsfwStatus | null
+  last_nsfw_check: string | null
+  // Spaced repetition review fields
+  next_review_at: string | null
+  review_count: number
+  last_reviewed_at: string | null
+  // Reddit-specific metadata
+  subreddit?: string | null
+  score?: number | null
 }
 
 export interface SavedItemsResponse {
@@ -71,7 +86,7 @@ export interface SyncTriggerResponse {
  */
 export type SortByField = 'saved_at' | 'synced_at' | 'created_at' | 'title' | 'priority'
 export type SortOrder = 'asc' | 'desc'
-export type GroupByOption = 'none' | 'date' | 'source' | 'tags' | 'website'
+export type GroupByOption = 'none' | 'date' | 'source' | 'tags' | 'website' | 'subreddit'
 export type ViewMode = 'grid' | 'list'
 
 export interface FilterState {
@@ -92,6 +107,11 @@ export interface FilterState {
   groupMonth: number | null   // For date grouping: 1-12
   groupTag: string | null     // For tag grouping: selected tag
   groupDomain: string | null  // For website grouping: selected domain
+  groupSubreddit: string | null  // For subreddit grouping: selected subreddit
+  // Link health filter
+  linkFilter: 'all' | 'working' | 'broken' | null  // null = all, working = exclude broken, broken = only broken
+  // NSFW content filter
+  nsfwFilter: 'all' | 'safe' | 'nsfw' | null  // null = all, safe = exclude nsfw/explicit, nsfw = only nsfw/explicit
 }
 
 export interface SortState {
@@ -233,4 +253,66 @@ export interface SocialMentionSummary {
 export interface ItemSocialSummary {
   hackernews?: SocialMentionSummary
   reddit?: SocialMentionSummary
+}
+
+/**
+ * Review feature types for spaced repetition system
+ */
+export type ReviewAction = 'tomorrow' | 'week' | 'archive' | 'read_now'
+
+export type ReviewSortBy = 'score' | 'recency' | 'subreddit' | 'random'
+
+export type ReviewSource = 'reddit' | 'youtube' | 'raindrop'
+
+export interface ReviewConfig {
+  subreddits: string[]
+  sortBy: ReviewSortBy
+  timerDuration: number // in seconds, default 8
+  includeNsfw: boolean // include NSFW content, default false
+  includeBroken: boolean // include dead/broken links, default false
+  sources: ReviewSource[] // which sources to include, default ['reddit']
+}
+
+export interface SubredditCount {
+  subreddit: string
+  count: number
+}
+
+export interface SubredditsResponse {
+  subreddits: SubredditCount[]
+  total: number
+}
+
+export interface ReviewActionResponse {
+  item: SavedItem
+  next_review_at: string
+  review_count: number
+}
+
+/**
+ * Reddit post details types for rich content display
+ */
+export interface RedditComment {
+  author: string | null
+  body: string
+  score: number
+  created_utc: string | null
+  depth: number
+  replies: RedditComment[]
+}
+
+export interface RedditPostDetails {
+  id: string
+  title: string
+  selftext: string | null
+  url: string | null
+  author: string | null
+  subreddit: string
+  score: number
+  num_comments: number
+  created_utc: string | null
+  permalink: string | null
+  is_self: boolean
+  thumbnail_url: string | null
+  comments: RedditComment[]
 }

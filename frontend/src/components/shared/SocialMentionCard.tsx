@@ -83,11 +83,11 @@ export function SocialMentionCard({ mention, className }: SocialMentionCardProps
 
       {/* Top comment preview */}
       {mention.top_comment && (
-        <div className="mt-2 p-2 bg-muted/50 rounded text-sm text-muted-foreground">
+        <div className="mt-2 p-2 bg-muted/50 rounded text-sm text-muted-foreground overflow-hidden">
           <span className="font-medium text-xs uppercase tracking-wide opacity-60 block mb-1">
             Top Comment
           </span>
-          <p className="line-clamp-3 whitespace-pre-wrap">
+          <p className="line-clamp-3 whitespace-pre-wrap break-words overflow-hidden">
             {mention.top_comment}
           </p>
         </div>

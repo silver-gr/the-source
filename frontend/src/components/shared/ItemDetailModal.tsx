@@ -72,7 +72,7 @@ export function ItemDetailModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
         <DialogHeader>
           <div className="flex items-start gap-3">
             {/* Favicon or Source Icon */}
@@ -131,71 +131,74 @@ export function ItemDetailModal({
           )}
         </DialogHeader>
 
-        <Separator className="my-4" />
+        <Separator className="my-4 flex-shrink-0" />
 
-        {/* Description */}
-        {item.description && (
-          <div className="mb-4">
-            <DialogDescription className="text-base leading-relaxed whitespace-pre-wrap">
-              {item.description}
-            </DialogDescription>
-          </div>
-        )}
+        {/* Scrollable Content Area */}
+        <div className="flex-1 overflow-y-auto min-h-0 pr-2">
+          {/* Description */}
+          {item.description && (
+            <div className="mb-4">
+              <DialogDescription className="text-base leading-relaxed whitespace-pre-wrap">
+                {item.description}
+              </DialogDescription>
+            </div>
+          )}
 
-        {/* Tags */}
-        {item.tags.length > 0 && (
-          <div className="mb-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Tag className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium">Tags</span>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {item.tags.map((tag) => (
-                <Badge key={tag} variant="outline" className="text-sm">
-                  {tag}
-                </Badge>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Social Presence */}
-        {item.url && (
-          <div className="mb-4">
-            <SocialPresenceSection itemId={item.id} />
-          </div>
-        )}
-
-        {/* Metadata */}
-        <div className={`grid gap-4 mb-4 text-sm ${item.source === 'manual' ? 'grid-cols-1' : 'grid-cols-2'}`}>
-          <div>
-            <div className="flex items-center gap-2 text-muted-foreground mb-1">
-              <Calendar className="h-4 w-4" />
-              <span>{item.source === 'manual' ? 'Added' : 'Created'}</span>
-            </div>
-            <div className="font-medium">{formatRelativeTime(item.created_at)}</div>
-            <div className="text-xs text-muted-foreground">
-              {new Date(item.created_at).toLocaleString()}
-            </div>
-          </div>
-          {item.source !== 'manual' && (
-            <div>
-              <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                <Calendar className="h-4 w-4" />
-                <span>Last Synced</span>
+          {/* Tags */}
+          {item.tags.length > 0 && (
+            <div className="mb-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Tag className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium">Tags</span>
               </div>
-              <div className="font-medium">{formatRelativeTime(item.synced_at)}</div>
-              <div className="text-xs text-muted-foreground">
-                {new Date(item.synced_at).toLocaleString()}
+              <div className="flex flex-wrap gap-2">
+                {item.tags.map((tag) => (
+                  <Badge key={tag} variant="outline" className="text-sm">
+                    {tag}
+                  </Badge>
+                ))}
               </div>
             </div>
           )}
+
+          {/* Social Presence */}
+          {item.url && (
+            <div className="mb-4">
+              <SocialPresenceSection itemId={item.id} />
+            </div>
+          )}
+
+          {/* Metadata */}
+          <div className={`grid gap-4 mb-4 text-sm ${item.source === 'manual' ? 'grid-cols-1' : 'grid-cols-2'}`}>
+            <div>
+              <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                <Calendar className="h-4 w-4" />
+                <span>{item.source === 'manual' ? 'Added' : 'Created'}</span>
+              </div>
+              <div className="font-medium">{formatRelativeTime(item.created_at)}</div>
+              <div className="text-xs text-muted-foreground">
+                {new Date(item.created_at).toLocaleString()}
+              </div>
+            </div>
+            {item.source !== 'manual' && (
+              <div>
+                <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                  <Calendar className="h-4 w-4" />
+                  <span>Last Synced</span>
+                </div>
+                <div className="font-medium">{formatRelativeTime(item.synced_at)}</div>
+                <div className="text-xs text-muted-foreground">
+                  {new Date(item.synced_at).toLocaleString()}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
-        <Separator className="my-4" />
+        <Separator className="my-4 flex-shrink-0" />
 
         {/* Action Buttons */}
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 flex-shrink-0">
           {item.url && (
             <Button
               onClick={handleOpenUrl}

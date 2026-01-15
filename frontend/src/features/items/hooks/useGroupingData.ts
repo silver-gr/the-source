@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { itemsApi } from '@/lib/api-client'
-import type { TagsResponse, DomainsResponse } from '@/types'
+import type { TagsResponse, DomainsResponse, SubredditsResponse } from '@/types'
 
 /**
  * Query keys for grouping data
@@ -9,6 +9,7 @@ export const groupingKeys = {
   all: ['grouping'] as const,
   tags: () => [...groupingKeys.all, 'tags'] as const,
   domains: () => [...groupingKeys.all, 'domains'] as const,
+  subreddits: () => [...groupingKeys.all, 'subreddits'] as const,
 }
 
 /**
@@ -32,6 +33,19 @@ export function useDomainsWithCounts(options?: { enabled?: boolean }) {
   return useQuery<DomainsResponse>({
     queryKey: groupingKeys.domains(),
     queryFn: () => itemsApi.getDomainsWithCounts(),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    enabled: options?.enabled ?? true,
+  })
+}
+
+/**
+ * Fetch all subreddits with their item counts
+ * Used for SubredditGroupSidebar component
+ */
+export function useSubredditsWithCounts(options?: { enabled?: boolean }) {
+  return useQuery<SubredditsResponse>({
+    queryKey: groupingKeys.subreddits(),
+    queryFn: () => itemsApi.getSubreddits(),
     staleTime: 5 * 60 * 1000, // 5 minutes
     enabled: options?.enabled ?? true,
   })

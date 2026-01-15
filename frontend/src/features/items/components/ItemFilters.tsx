@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Search, Filter, X, Inbox, Sparkles } from 'lucide-react'
+import { Search, Filter, X, Inbox, Sparkles, Link2, Link2Off, Eye, EyeOff } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -134,6 +134,34 @@ export function ItemFilters({
     })
   }, [filters, onFiltersChange])
 
+  // Cycle link filter: all -> working -> broken -> all
+  const handleLinkFilterCycle = useCallback(() => {
+    const current = filters.linkFilter
+    let next: 'all' | 'working' | 'broken' | null
+    if (current === null || current === 'all') {
+      next = 'working'  // Hide broken links
+    } else if (current === 'working') {
+      next = 'broken'   // Show only broken links
+    } else {
+      next = null       // Back to all
+    }
+    onFiltersChange({ ...filters, linkFilter: next })
+  }, [filters, onFiltersChange])
+
+  // Cycle NSFW filter: all -> safe -> nsfw -> all
+  const handleNsfwFilterCycle = useCallback(() => {
+    const current = filters.nsfwFilter
+    let next: 'all' | 'safe' | 'nsfw' | null
+    if (current === null || current === 'all') {
+      next = 'safe'     // Hide NSFW content
+    } else if (current === 'safe') {
+      next = 'nsfw'     // Show only NSFW content
+    } else {
+      next = null       // Back to all
+    }
+    onFiltersChange({ ...filters, nsfwFilter: next })
+  }, [filters, onFiltersChange])
+
   // Clear all filters
   const handleClearAll = useCallback(() => {
     setSearchInput('')
@@ -151,6 +179,9 @@ export function ItemFilters({
       groupMonth: null,
       groupTag: null,
       groupDomain: null,
+      groupSubreddit: null,
+      linkFilter: null,
+      nsfwFilter: null,
     })
   }, [onFiltersChange])
 
@@ -161,7 +192,9 @@ export function ItemFilters({
     filters.status !== null ||
     filters.tags.length > 0 ||
     filters.savedAfter !== null ||
-    filters.savedBefore !== null
+    filters.savedBefore !== null ||
+    (filters.linkFilter !== null && filters.linkFilter !== 'all') ||
+    (filters.nsfwFilter !== null && filters.nsfwFilter !== 'all')
 
   // Sync local search with external filter changes
   useEffect(() => {
@@ -169,8 +202,8 @@ export function ItemFilters({
   }, [filters.search])
 
   return (
-    <Card className="transition-shadow duration-200 hover:shadow-md">
-      <CardContent className="p-4">
+    <Card className="transition-all duration-200 hover:shadow-md border-border/60">
+      <CardContent className="p-5">
         <div className="flex flex-col gap-4">
           {/* Row 1: Search + Quick Filters + Sort/Group */}
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
@@ -178,7 +211,7 @@ export function ItemFilters({
             <div className="relative flex-1 max-w-md group">
               <Search
                 className={cn(
-                  "absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2",
+                  "absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2",
                   "text-muted-foreground transition-colors duration-200",
                   "group-focus-within:text-primary"
                 )}
@@ -188,10 +221,11 @@ export function ItemFilters({
                 value={searchInput}
                 onChange={handleSearchChange}
                 className={cn(
-                  "pl-10 pr-10",
+                  "pl-10 pr-10 h-10",
+                  "bg-muted/30 border-transparent",
                   "transition-all duration-200",
-                  "focus:ring-2 focus:ring-primary focus:ring-offset-2",
-                  "hover:border-primary/50"
+                  "focus:bg-background focus:border-border focus:ring-2 focus:ring-primary/20",
+                  "hover:bg-muted/50"
                 )}
               />
               {searchInput && (
@@ -199,7 +233,8 @@ export function ItemFilters({
                   variant="ghost"
                   size="icon"
                   className={cn(
-                    "absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2",
+                    "absolute right-1.5 top-1/2 h-7 w-7 -translate-y-1/2",
+                    "rounded-md",
                     "transition-all duration-200",
                     "hover:bg-destructive/10 hover:text-destructive"
                   )}
@@ -217,31 +252,104 @@ export function ItemFilters({
                 size="sm"
                 onClick={handleInboxFilter}
                 className={cn(
+                  'h-9 px-4',
                   'transition-all duration-200 ease-out',
-                  'hover:scale-105 hover:shadow-md',
-                  'active:scale-95',
+                  'hover:scale-[1.02]',
+                  'active:scale-[0.98]',
                   filters.status === 'unprocessed'
-                    ? 'bg-amber-500 hover:bg-amber-600 text-white shadow-amber-500/25 shadow-md'
-                    : 'hover:border-amber-500/50'
+                    ? 'bg-amber-500 hover:bg-amber-600 text-white shadow-lg shadow-amber-500/25 border-amber-500'
+                    : 'hover:border-amber-500/50 hover:bg-amber-500/5'
                 )}
               >
-                <Inbox className="mr-1.5 h-4 w-4" />
+                <Inbox className="mr-2 h-4 w-4" />
                 Inbox
                 {filters.status === 'unprocessed' && (
-                  <Badge
-                    variant="secondary"
-                    className={cn(
-                      "ml-1.5 px-1.5 py-0 text-xs",
-                      "bg-white/20 text-white border-0"
-                    )}
-                  >
+                  <span className="ml-2 px-1.5 py-0 text-xs font-mono font-bold rounded bg-white/20">
                     {filteredCount}
-                  </Badge>
+                  </span>
+                )}
+              </Button>
+
+              {/* Link Filter Toggle */}
+              <Button
+                variant={filters.linkFilter && filters.linkFilter !== 'all' ? 'default' : 'outline'}
+                size="sm"
+                onClick={handleLinkFilterCycle}
+                title={
+                  filters.linkFilter === 'working'
+                    ? 'Hiding dead links (click for dead only)'
+                    : filters.linkFilter === 'broken'
+                    ? 'Showing dead links only (click for all)'
+                    : 'Click to hide dead links'
+                }
+                className={cn(
+                  'h-9 px-3',
+                  'transition-all duration-200 ease-out',
+                  'hover:scale-[1.02]',
+                  'active:scale-[0.98]',
+                  filters.linkFilter === 'working'
+                    ? 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/25 border-emerald-500'
+                    : filters.linkFilter === 'broken'
+                    ? 'bg-red-500 hover:bg-red-600 text-white shadow-lg shadow-red-500/25 border-red-500'
+                    : 'hover:border-muted-foreground/50'
+                )}
+              >
+                {filters.linkFilter === 'working' ? (
+                  <>
+                    <Link2 className="mr-1.5 h-4 w-4" />
+                    Working
+                  </>
+                ) : filters.linkFilter === 'broken' ? (
+                  <>
+                    <Link2Off className="mr-1.5 h-4 w-4" />
+                    Dead Only
+                  </>
+                ) : (
+                  <Link2 className="h-4 w-4" />
+                )}
+              </Button>
+
+              {/* NSFW Filter Toggle */}
+              <Button
+                variant={filters.nsfwFilter && filters.nsfwFilter !== 'all' ? 'default' : 'outline'}
+                size="sm"
+                onClick={handleNsfwFilterCycle}
+                title={
+                  filters.nsfwFilter === 'safe'
+                    ? 'Hiding NSFW content (click for NSFW only)'
+                    : filters.nsfwFilter === 'nsfw'
+                    ? 'Showing NSFW only (click for all)'
+                    : 'Click to hide NSFW content'
+                }
+                className={cn(
+                  'h-9 px-3',
+                  'transition-all duration-200 ease-out',
+                  'hover:scale-[1.02]',
+                  'active:scale-[0.98]',
+                  filters.nsfwFilter === 'safe'
+                    ? 'bg-blue-500 hover:bg-blue-600 text-white shadow-lg shadow-blue-500/25 border-blue-500'
+                    : filters.nsfwFilter === 'nsfw'
+                    ? 'bg-pink-500 hover:bg-pink-600 text-white shadow-lg shadow-pink-500/25 border-pink-500'
+                    : 'hover:border-muted-foreground/50'
+                )}
+              >
+                {filters.nsfwFilter === 'safe' ? (
+                  <>
+                    <Eye className="mr-1.5 h-4 w-4" />
+                    SFW
+                  </>
+                ) : filters.nsfwFilter === 'nsfw' ? (
+                  <>
+                    <EyeOff className="mr-1.5 h-4 w-4" />
+                    NSFW
+                  </>
+                ) : (
+                  <Eye className="h-4 w-4" />
                 )}
               </Button>
             </div>
 
-            <Separator orientation="vertical" className="h-8 hidden lg:block" />
+            <Separator orientation="vertical" className="h-8 hidden lg:block bg-border/60" />
 
             {/* Date Range Picker */}
             <DateRangePicker
@@ -253,7 +361,7 @@ export function ItemFilters({
               onChange={handleDateRangeChange}
             />
 
-            <Separator orientation="vertical" className="h-8 hidden lg:block" />
+            <Separator orientation="vertical" className="h-8 hidden lg:block bg-border/60" />
 
             {/* Sort + Group By */}
             <div className="flex items-center gap-2">
@@ -274,35 +382,36 @@ export function ItemFilters({
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             {/* Source Filters */}
             <div className="flex items-center gap-2 flex-wrap">
-              <Filter className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground mr-1">Source:</span>
+              <span className="text-sm text-muted-foreground mr-1 flex items-center gap-1.5">
+                <Filter className="h-3.5 w-3.5" />
+                Source:
+              </span>
               {ALL_SOURCES.map((source) => {
                 const isActive = filters.sources.includes(source)
                 const count = sourceStats[source]
                 return (
-                  <Button
+                  <button
                     key={source}
-                    variant={isActive ? 'default' : 'outline'}
-                    size="sm"
                     onClick={() => toggleSource(source)}
                     className={cn(
-                      'gap-1.5',
+                      'inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg',
+                      'text-sm font-medium',
                       'transition-all duration-200 ease-out',
-                      'hover:scale-105',
-                      'active:scale-95',
+                      'hover:scale-[1.03]',
+                      'active:scale-[0.97]',
                       isActive
                         ? cn(getSourceButtonClass(source), 'shadow-md')
-                        : 'hover:shadow-sm'
+                        : 'bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground'
                     )}
                   >
                     <SourceIcon source={source} size="sm" />
                     <span className="hidden sm:inline">
                       {SOURCE_METADATA[source].label}
                       {count !== undefined && (
-                        <span className="ml-1 opacity-75">({formatNumber(count)})</span>
+                        <span className="ml-1 font-mono opacity-75">({formatNumber(count)})</span>
                       )}
                     </span>
-                  </Button>
+                  </button>
                 )
               })}
             </div>
@@ -313,22 +422,23 @@ export function ItemFilters({
               {ALL_STATUSES.map((status) => {
                 const isActive = filters.status === status
                 return (
-                  <Button
+                  <button
                     key={status ?? 'all'}
-                    variant={isActive ? 'default' : 'outline'}
-                    size="sm"
                     onClick={() => setStatus(status)}
                     className={cn(
+                      'px-3 py-1.5 rounded-lg text-sm font-medium',
                       'transition-all duration-200 ease-out',
-                      'hover:scale-105',
-                      'active:scale-95',
+                      'hover:scale-[1.03]',
+                      'active:scale-[0.97]',
                       isActive && status
                         ? cn(getStatusButtonClass(status), 'shadow-md')
-                        : 'hover:shadow-sm'
+                        : isActive
+                        ? 'bg-foreground text-background shadow-md'
+                        : 'bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground'
                     )}
                   >
                     {status ? STATUS_METADATA[status].label : 'All'}
-                  </Button>
+                  </button>
                 )
               })}
             </div>
@@ -338,7 +448,7 @@ export function ItemFilters({
           {hasActiveFilters && (
             <div
               className={cn(
-                "flex items-center justify-between border-t pt-3",
+                "flex items-center justify-between border-t border-border/60 pt-4",
                 "animate-in fade-in-50 slide-in-from-top-2 duration-200"
               )}
             >

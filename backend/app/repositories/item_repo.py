@@ -269,6 +269,47 @@ class ItemRepository:
             conditions.append("LOWER(REPLACE(url, 'www.', '')) LIKE ?")
             params.append(f"%{normalized_domain}%")
 
+        # Link status filtering
+        if filters.link_status:
+            conditions.append("link_status = ?")
+            params.append(filters.link_status)
+
+        # Exclude broken links
+        if filters.exclude_broken:
+            conditions.append("(link_status IS NULL OR link_status != 'broken')")
+
+        # NSFW status filtering
+        if filters.nsfw_status:
+            conditions.append("nsfw_status = ?")
+            params.append(filters.nsfw_status)
+
+        # Exclude NSFW/explicit content
+        if filters.exclude_nsfw:
+            conditions.append("(nsfw_status IS NULL OR nsfw_status NOT IN ('nsfw', 'explicit'))")
+
+        # Spaced repetition: due for review filter
+        if filters.due_for_review:
+            # Items where next_review_at is NULL (never reviewed) or <= now
+            conditions.append(
+                "(next_review_at IS NULL OR next_review_at <= datetime('now'))"
+            )
+
+        # Subreddit filtering (from source_metadata JSON)
+        # Only apply to Reddit items - other sources (YouTube, Raindrop) pass through
+        if filters.subreddit:
+            conditions.append(
+                "(source != 'reddit' OR json_extract(source_metadata, '$.subreddit') = ?)"
+            )
+            params.append(filters.subreddit)
+
+        if filters.subreddits:
+            placeholders = ", ".join("?" * len(filters.subreddits))
+            # Non-Reddit items pass through, Reddit items must match one of the subreddits
+            conditions.append(
+                f"(source != 'reddit' OR json_extract(source_metadata, '$.subreddit') IN ({placeholders}))"
+            )
+            params.extend(filters.subreddits)
+
         # Full-text search
         if filters.search:
             conditions.append(
@@ -465,3 +506,24 @@ class ItemRepository:
         )
 
         return [{"domain": domain, "count": count} for domain, count in sorted_domains]
+
+    async def get_subreddits_with_counts(self) -> list[dict[str, Any]]:
+        """Get all unique subreddits with their item counts.
+
+        Extracts subreddit from source_metadata JSON for Reddit items.
+
+        Returns:
+            List of dicts with 'subreddit' and 'count' keys, sorted by count descending.
+        """
+        sql = """
+            SELECT
+                json_extract(source_metadata, '$.subreddit') as subreddit,
+                COUNT(*) as count
+            FROM items
+            WHERE source = 'reddit'
+              AND json_extract(source_metadata, '$.subreddit') IS NOT NULL
+            GROUP BY json_extract(source_metadata, '$.subreddit')
+            ORDER BY count DESC
+        """
+        rows = await self._db.fetchall(sql)
+        return [{"subreddit": row["subreddit"], "count": row["count"]} for row in rows]

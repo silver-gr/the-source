@@ -30,6 +30,11 @@ const DEFAULT_FILTERS: FilterState = {
   groupMonth: null,
   groupTag: null,
   groupDomain: null,
+  groupSubreddit: null,
+  // Link health filter
+  linkFilter: null,  // null = all links, 'working' = exclude broken, 'broken' = only broken
+  // NSFW content filter
+  nsfwFilter: null,  // null = all content, 'safe' = exclude nsfw/explicit, 'nsfw' = only nsfw/explicit
 }
 
 /**
@@ -87,7 +92,7 @@ function parseFiltersFromUrl(searchParams: URLSearchParams): Partial<FilterState
 
   // Parse groupBy
   const groupBy = searchParams.get('group')
-  if (groupBy && ['none', 'date', 'source', 'tags', 'website'].includes(groupBy)) {
+  if (groupBy && ['none', 'date', 'source', 'tags', 'website', 'subreddit'].includes(groupBy)) {
     filters.groupBy = groupBy as GroupByOption
   }
 
@@ -116,6 +121,23 @@ function parseFiltersFromUrl(searchParams: URLSearchParams): Partial<FilterState
   const domain = searchParams.get('domain')
   if (domain) {
     filters.groupDomain = domain
+  }
+
+  const subreddit = searchParams.get('subreddit')
+  if (subreddit) {
+    filters.groupSubreddit = subreddit
+  }
+
+  // Parse link filter
+  const linkFilter = searchParams.get('links')
+  if (linkFilter && ['all', 'working', 'broken'].includes(linkFilter)) {
+    filters.linkFilter = linkFilter as 'all' | 'working' | 'broken'
+  }
+
+  // Parse NSFW filter
+  const nsfwFilter = searchParams.get('nsfw')
+  if (nsfwFilter && ['all', 'safe', 'nsfw'].includes(nsfwFilter)) {
+    filters.nsfwFilter = nsfwFilter as 'all' | 'safe' | 'nsfw'
   }
 
   return filters
@@ -206,6 +228,20 @@ function serializeFiltersToUrl(
 
   if (filters.groupDomain !== null) {
     params.set('domain', filters.groupDomain)
+  }
+
+  if (filters.groupSubreddit !== null) {
+    params.set('subreddit', filters.groupSubreddit)
+  }
+
+  // Link filter (only if not null/all)
+  if (filters.linkFilter && filters.linkFilter !== 'all') {
+    params.set('links', filters.linkFilter)
+  }
+
+  // NSFW filter (only if not null/all)
+  if (filters.nsfwFilter && filters.nsfwFilter !== 'all') {
+    params.set('nsfw', filters.nsfwFilter)
   }
 
   // Page (only if not 1)
@@ -408,6 +444,58 @@ export function useItemFilters(options: UseItemFiltersOptions = {}) {
   }, [setFilters])
 
   /**
+   * Set link filter (smart toggle: all -> working -> broken -> all)
+   */
+  const setLinkFilter = useCallback(
+    (linkFilter: 'all' | 'working' | 'broken' | null) => {
+      setFilters({ ...filters, linkFilter })
+    },
+    [filters, setFilters]
+  )
+
+  /**
+   * Cycle through link filter options: all -> working -> broken -> all
+   */
+  const cycleLinkFilter = useCallback(() => {
+    const current = filters.linkFilter
+    let next: 'all' | 'working' | 'broken' | null
+    if (current === null || current === 'all') {
+      next = 'working'
+    } else if (current === 'working') {
+      next = 'broken'
+    } else {
+      next = null  // back to all
+    }
+    setFilters({ ...filters, linkFilter: next })
+  }, [filters, setFilters])
+
+  /**
+   * Set NSFW filter
+   */
+  const setNsfwFilter = useCallback(
+    (nsfwFilter: 'all' | 'safe' | 'nsfw' | null) => {
+      setFilters({ ...filters, nsfwFilter })
+    },
+    [filters, setFilters]
+  )
+
+  /**
+   * Cycle through NSFW filter options: all -> safe -> nsfw -> all
+   */
+  const cycleNsfwFilter = useCallback(() => {
+    const current = filters.nsfwFilter
+    let next: 'all' | 'safe' | 'nsfw' | null
+    if (current === null || current === 'all') {
+      next = 'safe'
+    } else if (current === 'safe') {
+      next = 'nsfw'
+    } else {
+      next = null  // back to all
+    }
+    setFilters({ ...filters, nsfwFilter: next })
+  }, [filters, setFilters])
+
+  /**
    * Check if any filters are active
    */
   const hasActiveFilters = useMemo(
@@ -417,7 +505,9 @@ export function useItemFilters(options: UseItemFiltersOptions = {}) {
       filters.status !== null ||
       filters.tags.length > 0 ||
       filters.savedAfter !== null ||
-      filters.savedBefore !== null,
+      filters.savedBefore !== null ||
+      (filters.linkFilter !== null && filters.linkFilter !== 'all') ||
+      (filters.nsfwFilter !== null && filters.nsfwFilter !== 'all'),
     [filters]
   )
 
@@ -450,6 +540,10 @@ export function useItemFilters(options: UseItemFiltersOptions = {}) {
     setDateRange,
     setSort,
     setGroupBy,
+    setLinkFilter,
+    cycleLinkFilter,
+    setNsfwFilter,
+    cycleNsfwFilter,
   }
 }
 

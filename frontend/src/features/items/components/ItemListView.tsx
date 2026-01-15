@@ -71,13 +71,13 @@ export function ItemListView({
           <div className="h-4 w-4 rounded bg-muted animate-pulse" />
           <div className="h-4 w-24 rounded bg-muted animate-pulse" />
         </div>
-        <Card className="max-h-[80vh] overflow-hidden">
-          <CardContent className="p-4 max-h-[78vh] overflow-y-auto">
+        <Card>
+          <CardContent className="p-4">
             <div className="grid gap-1 md:grid-cols-2">
-              {Array.from({ length: 50 }).map((_, i) => (
+              {Array.from({ length: 20 }).map((_, i) => (
                 <div
                   key={i}
-                  className="flex items-center gap-2 p-2 rounded animate-pulse"
+                  className="flex items-center gap-3 p-2 rounded animate-pulse"
                   style={{ animationDelay: `${i * 20}ms` }}
                 >
                   <div className="h-4 w-4 rounded bg-muted" />
@@ -169,9 +169,9 @@ export function ItemListView({
         )}
       </div>
 
-      {/* Compact List View - 2 columns for more title visibility */}
-      <Card className="max-h-[80vh] overflow-hidden transition-shadow hover:shadow-md">
-        <CardContent className="p-4 max-h-[78vh] overflow-y-auto">
+      {/* Compact List View - 2 columns, full page flow */}
+      <Card className="transition-shadow hover:shadow-md">
+        <CardContent className="p-4">
           <div className="grid gap-1 md:grid-cols-2">
             {items.map((item, index) => (
               <ListItemRow

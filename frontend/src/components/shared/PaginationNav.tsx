@@ -64,47 +64,48 @@ export function PaginationNav({
     return null;
   }
 
-  // Shared button styles for navigation arrows
-  const navButtonClasses = cn(
-    "h-9 w-9",
-    "transition-all duration-200 ease-out",
-    "hover:scale-105 hover:shadow-md",
-    "focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
-    "disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-none"
-  );
-
   return (
     <nav
       role="navigation"
       aria-label="Pagination"
-      className="flex items-center justify-center gap-1.5"
+      className="flex items-center justify-center gap-1"
     >
       {/* First Page */}
       <Button
-        variant="outline"
+        variant="ghost"
         size="icon"
         onClick={() => onPageChange(1)}
         disabled={currentPage === 1}
         aria-label="Go to first page"
-        className={navButtonClasses}
+        className={cn(
+          "h-9 w-9 rounded-lg",
+          "transition-all duration-200",
+          "hover:bg-muted hover:scale-105",
+          "disabled:opacity-30 disabled:hover:scale-100"
+        )}
       >
         <ChevronsLeft className="h-4 w-4" />
       </Button>
 
       {/* Previous Page */}
       <Button
-        variant="outline"
+        variant="ghost"
         size="icon"
         onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage === 1}
         aria-label="Go to previous page"
-        className={navButtonClasses}
+        className={cn(
+          "h-9 w-9 rounded-lg",
+          "transition-all duration-200",
+          "hover:bg-muted hover:scale-105",
+          "disabled:opacity-30 disabled:hover:scale-100"
+        )}
       >
         <ChevronLeft className="h-4 w-4" />
       </Button>
 
       {/* Page Numbers */}
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-0.5 mx-1">
         {pageNumbers.map((page, index) => {
           if (page === "ellipsis") {
             return (
@@ -113,7 +114,7 @@ export function PaginationNav({
                 className="flex h-9 w-9 items-center justify-center text-sm text-muted-foreground select-none"
                 aria-hidden="true"
               >
-                ...
+                ···
               </span>
             );
           }
@@ -121,48 +122,56 @@ export function PaginationNav({
           const isActive = currentPage === page;
 
           return (
-            <Button
+            <button
               key={page}
-              variant={isActive ? "default" : "outline"}
-              size="icon"
               onClick={() => onPageChange(page)}
               aria-label={`Go to page ${page}`}
               aria-current={isActive ? "page" : undefined}
               className={cn(
-                "h-9 w-9 font-medium",
-                "transition-all duration-200 ease-out",
+                "h-9 min-w-9 px-2 rounded-lg font-mono text-sm font-medium",
+                "transition-all duration-200",
                 "focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
                 isActive
-                  ? "shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30"
-                  : "hover:scale-105 hover:shadow-md hover:bg-accent"
+                  ? "bg-primary text-primary-foreground shadow-md shadow-primary/25"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground hover:scale-105"
               )}
             >
               {page}
-            </Button>
+            </button>
           );
         })}
       </div>
 
       {/* Next Page */}
       <Button
-        variant="outline"
+        variant="ghost"
         size="icon"
         onClick={() => onPageChange(currentPage + 1)}
         disabled={currentPage === totalPages}
         aria-label="Go to next page"
-        className={navButtonClasses}
+        className={cn(
+          "h-9 w-9 rounded-lg",
+          "transition-all duration-200",
+          "hover:bg-muted hover:scale-105",
+          "disabled:opacity-30 disabled:hover:scale-100"
+        )}
       >
         <ChevronRight className="h-4 w-4" />
       </Button>
 
       {/* Last Page */}
       <Button
-        variant="outline"
+        variant="ghost"
         size="icon"
         onClick={() => onPageChange(totalPages)}
         disabled={currentPage === totalPages}
         aria-label="Go to last page"
-        className={navButtonClasses}
+        className={cn(
+          "h-9 w-9 rounded-lg",
+          "transition-all duration-200",
+          "hover:bg-muted hover:scale-105",
+          "disabled:opacity-30 disabled:hover:scale-100"
+        )}
       >
         <ChevronsRight className="h-4 w-4" />
       </Button>

@@ -13,6 +13,12 @@ import type {
   DomainsResponse,
   ItemStatsResponse,
   SocialCheckResponse,
+  LinkStatus,
+  NsfwStatus,
+  ReviewAction,
+  ReviewActionResponse,
+  SubredditsResponse,
+  RedditPostDetails,
 } from '@/types'
 
 const API_BASE_URL = 'http://localhost:8001/api/v1'
@@ -78,6 +84,7 @@ export const itemsApi = {
     page?: number
     per_page?: number
     source?: Source
+    sources?: Source[]  // Filter by multiple sources
     status?: ItemStatus
     search?: string
     tags?: string[]
@@ -88,12 +95,25 @@ export const itemsApi = {
     // Date range
     saved_after?: string  // ISO date string
     saved_before?: string // ISO date string
+    // Link health
+    link_status?: LinkStatus  // Filter by specific link status
+    exclude_broken?: boolean  // Exclude broken links
+    // NSFW filtering
+    nsfw_status?: NsfwStatus  // Filter by specific NSFW status
+    exclude_nsfw?: boolean  // Exclude NSFW/explicit content
+    // Review queue filtering
+    due_for_review?: boolean  // Only items due for review
+    subreddit?: string  // Filter by single subreddit
+    subreddits?: string[]  // Filter by multiple subreddits
   }): Promise<SavedItemsResponse> {
     const searchParams = new URLSearchParams()
 
     if (params?.page) searchParams.set('page', String(params.page))
     if (params?.per_page) searchParams.set('page_size', String(params.per_page))
     if (params?.source) searchParams.set('source', params.source)
+    if (params?.sources?.length) {
+      params.sources.forEach((source) => searchParams.append('sources', source))
+    }
     if (params?.status) searchParams.set('status', params.status)
     if (params?.search) searchParams.set('search', params.search)
     if (params?.domain) searchParams.set('domain', params.domain)
@@ -106,6 +126,18 @@ export const itemsApi = {
     // Date range
     if (params?.saved_after) searchParams.set('saved_after', params.saved_after)
     if (params?.saved_before) searchParams.set('saved_before', params.saved_before)
+    // Link health
+    if (params?.link_status) searchParams.set('link_status', params.link_status)
+    if (params?.exclude_broken) searchParams.set('exclude_broken', 'true')
+    // NSFW filtering
+    if (params?.nsfw_status) searchParams.set('nsfw_status', params.nsfw_status)
+    if (params?.exclude_nsfw) searchParams.set('exclude_nsfw', 'true')
+    // Review queue filtering
+    if (params?.due_for_review) searchParams.set('due_for_review', 'true')
+    if (params?.subreddit) searchParams.set('subreddit', params.subreddit)
+    if (params?.subreddits?.length) {
+      params.subreddits.forEach((sub) => searchParams.append('subreddits', sub))
+    }
 
     const queryString = searchParams.toString()
     const endpoint = `/items${queryString ? `?${queryString}` : ''}`
@@ -187,6 +219,43 @@ export const itemsApi = {
    */
   async getStats(): Promise<ItemStatsResponse> {
     return apiFetch<ItemStatsResponse>('/items/stats')
+  },
+
+  /**
+   * Get all subreddits with their item counts (for review config)
+   */
+  async getSubreddits(): Promise<SubredditsResponse> {
+    return apiFetch<SubredditsResponse>('/items/subreddits')
+  },
+
+  /**
+   * Perform a review action on an item (spaced repetition)
+   * @param id - Item ID
+   * @param action - Review action: tomorrow (+1d), week (+7d), archive (+30d), read_now (pause)
+   * @param redditDetails - Optional Reddit details to cache (saved to DB for archived items)
+   */
+  async reviewItem(id: string, action: ReviewAction, redditDetails?: RedditPostDetails): Promise<ReviewActionResponse> {
+    const body: { action: ReviewAction; reddit_details?: RedditPostDetails } = { action }
+    if (redditDetails) {
+      body.reddit_details = redditDetails
+    }
+    return apiFetch<ReviewActionResponse>(`/items/${id}/review`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    })
+  },
+
+  /**
+   * Get Reddit post details including comments for an item
+   * @param itemId - The ID of the saved item (must be a Reddit item)
+   * @param commentLimit - Number of top comments to fetch (1-30, default: 30)
+   * @returns Reddit post details with title, selftext, score, and top comments
+   */
+  async getRedditDetails(itemId: string, commentLimit?: number): Promise<RedditPostDetails> {
+    const params = new URLSearchParams()
+    if (commentLimit) params.set('comment_limit', String(commentLimit))
+    const query = params.toString()
+    return apiFetch<RedditPostDetails>(`/items/${itemId}/reddit-details${query ? `?${query}` : ''}`)
   },
 }
 

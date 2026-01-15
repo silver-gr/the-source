@@ -53,6 +53,24 @@ export const queryKeys = {
     all: ['tags'] as const,
     list: () => [...queryKeys.tags.all, 'list'] as const,
   },
+
+  // Subreddits queries (for review feature)
+  subreddits: {
+    all: ['subreddits'] as const,
+  },
+
+  // Review queries
+  review: {
+    all: ['review-items'] as const,
+    list: (filters: Record<string, unknown>) =>
+      [...queryKeys.review.all, filters] as const,
+  },
+
+  // Reddit details queries
+  redditDetails: {
+    all: ['reddit-details'] as const,
+    detail: (itemId: string) => [...queryKeys.redditDetails.all, itemId] as const,
+  },
 } as const
 
 /**

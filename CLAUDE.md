@@ -264,6 +264,20 @@ Query params used for shareable links:
 - `?search=query` - Search text
 - `?tags=tag1,tag2` - Comma-separated tags
 
+## Development Workflow
+
+**MANDATORY: Always run build checks after implementing features or making changes.**
+
+```bash
+# Frontend - run after ANY frontend changes
+cd frontend && bun run build
+
+# Backend - run after ANY backend changes
+cd backend && uv run ruff check . && uv run ruff format --check .
+```
+
+Do NOT consider a task complete until build passes without errors.
+
 ## Important Notes
 
 1. **Port Configuration:** Frontend API client points to port 8001, backend default is 8000. Either run backend on 8001 or update `src/lib/api-client.ts`.

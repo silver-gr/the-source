@@ -6,6 +6,43 @@ from typing import Any, Generic, Literal, TypeVar
 from pydantic import BaseModel, ConfigDict, Field
 
 
+class RedditComment(BaseModel):
+    """Schema for a Reddit comment with nested replies."""
+
+    author: str | None = Field(None, description="Comment author username")
+    body: str = Field(..., description="Comment body text")
+    score: int = Field(..., description="Comment score (upvotes - downvotes)")
+    created_utc: datetime | None = Field(None, description="When the comment was created")
+    depth: int = Field(default=0, description="Nesting depth (0 = top-level)")
+    replies: list["RedditComment"] = Field(
+        default_factory=list, description="Nested reply comments"
+    )
+
+
+# Rebuild model to resolve forward reference
+RedditComment.model_rebuild()
+
+
+class RedditPostDetails(BaseModel):
+    """Schema for full Reddit post details with top comments."""
+
+    id: str = Field(..., description="Reddit submission ID")
+    title: str = Field(..., description="Post title")
+    selftext: str | None = Field(None, description="Post body text (for self posts)")
+    url: str | None = Field(None, description="Post URL (for link posts)")
+    author: str | None = Field(None, description="Post author username")
+    subreddit: str = Field(..., description="Subreddit name (without r/ prefix)")
+    score: int = Field(..., description="Post score (upvotes - downvotes)")
+    num_comments: int = Field(..., description="Total number of comments")
+    created_utc: datetime | None = Field(None, description="When the post was created")
+    permalink: str | None = Field(None, description="Reddit permalink path")
+    is_self: bool = Field(..., description="True if text post, False if link post")
+    thumbnail_url: str | None = Field(None, description="Thumbnail image URL")
+    comments: list[RedditComment] = Field(
+        default_factory=list, description="Top comments sorted by score"
+    )
+
+
 class ItemBase(BaseModel):
     """Base schema for Item with common fields."""
 
@@ -60,6 +97,12 @@ class ItemUpdate(BaseModel):
     action: str | None = None
     priority: int | None = Field(None, ge=1, le=10)
     modified_from_source: bool | None = None
+    # Spaced repetition fields
+    next_review_at: datetime | None = None
+    review_count: int | None = None
+    last_reviewed_at: datetime | None = None
+    # Cached Reddit details (JSON)
+    reddit_details: dict[str, Any] | None = None
 
 
 class ItemResponse(BaseModel):
@@ -86,6 +129,16 @@ class ItemResponse(BaseModel):
     action: str | None
     priority: int
     modified_from_source: bool
+    link_status: str | None = Field(None, description="Link health status: ok, broken, unchecked")
+    last_link_check: datetime | None = Field(None, description="When the link was last checked")
+    nsfw_status: str | None = Field(None, description="NSFW status: unknown, safe, nsfw, explicit")
+    last_nsfw_check: datetime | None = Field(None, description="When NSFW status was last checked")
+    # Spaced repetition fields
+    next_review_at: datetime | None = Field(None, description="When this item is due for review")
+    review_count: int = Field(default=0, description="Number of times this item has been reviewed")
+    last_reviewed_at: datetime | None = Field(None, description="When this item was last reviewed")
+    # Cached Reddit details
+    reddit_details: dict[str, Any] | None = Field(None, description="Cached Reddit post details (title, selftext, comments)")
 
 
 T = TypeVar("T")
@@ -121,6 +174,28 @@ class FilterParams(BaseModel):
     priority_min: int | None = Field(None, ge=1, le=10, description="Minimum priority")
     priority_max: int | None = Field(None, ge=1, le=10, description="Maximum priority")
     domain: str | None = Field(None, description="Filter by URL domain (e.g., 'reddit.com')")
+    link_status: Literal["ok", "broken", "unchecked"] | None = Field(
+        None, description="Filter by link health status"
+    )
+    exclude_broken: bool | None = Field(
+        None, description="Exclude broken links from results"
+    )
+    nsfw_status: Literal["unknown", "safe", "nsfw", "explicit"] | None = Field(
+        None, description="Filter by NSFW status"
+    )
+    exclude_nsfw: bool | None = Field(
+        None, description="Exclude NSFW/explicit content from results"
+    )
+    # Spaced repetition filters
+    due_for_review: bool | None = Field(
+        None, description="Filter items that are due for review (next_review_at <= now)"
+    )
+    subreddit: str | None = Field(
+        None, description="Filter by subreddit (from source_metadata)"
+    )
+    subreddits: list[str] | None = Field(
+        None, description="Filter by multiple subreddits"
+    )
 
     # Date filtering
     saved_after: datetime | None = Field(None, description="Filter items saved after this date")
@@ -178,6 +253,31 @@ class DomainsResponse(BaseModel):
 
     domains: list[DomainCount] = Field(..., description="List of domains with counts")
     total: int = Field(..., ge=0, description="Total number of unique domains")
+
+
+class SubredditCount(BaseModel):
+    """Schema for a subreddit with its item count."""
+
+    subreddit: str = Field(..., description="Subreddit name (without r/ prefix)")
+    count: int = Field(..., ge=0, description="Number of items from this subreddit")
+
+
+class SubredditsResponse(BaseModel):
+    """Response schema for subreddits with counts."""
+
+    subreddits: list[SubredditCount] = Field(..., description="List of subreddits with counts")
+    total: int = Field(..., ge=0, description="Total number of unique subreddits")
+
+
+class ReviewActionRequest(BaseModel):
+    """Request schema for applying a review action to an item."""
+
+    action: Literal["tomorrow", "week", "archive"] = Field(
+        ..., description="Review action: tomorrow (1 day), week (7 days), archive (30 days)"
+    )
+    reddit_details: dict[str, Any] | None = Field(
+        None, description="Reddit post details to cache (title, selftext, comments, etc.)"
+    )
 
 
 class FetchTitleResponse(BaseModel):

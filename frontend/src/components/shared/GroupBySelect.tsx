@@ -1,4 +1,4 @@
-import { Layers, Calendar, Globe, Tags, Link2 } from 'lucide-react'
+import { Layers, Calendar, Globe, Tags, Link2, MessageSquare } from 'lucide-react'
 import {
   Select,
   SelectContent,
@@ -7,7 +7,7 @@ import {
 } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 
-export type GroupByOption = 'none' | 'date' | 'source' | 'tags' | 'website'
+export type GroupByOption = 'none' | 'date' | 'source' | 'tags' | 'website' | 'subreddit'
 
 interface GroupBySelectProps {
   value: GroupByOption
@@ -21,6 +21,7 @@ const groupByOptions = [
   { value: 'source' as const, label: 'By Source', icon: Globe, description: 'YouTube, Reddit, etc.' },
   { value: 'tags' as const, label: 'By Tags', icon: Tags, description: 'First tag of each item' },
   { value: 'website' as const, label: 'By Website', icon: Link2, description: 'Group by domain' },
+  { value: 'subreddit' as const, label: 'By Subreddit', icon: MessageSquare, description: 'r/subreddit groups' },
 ]
 
 /**

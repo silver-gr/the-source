@@ -1,7 +1,24 @@
+/* Google Fonts - distinctive typography (must be first) */
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=JetBrains+Mono:wght@400;500;600&family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&display=swap');
+
 @import "tailwindcss";
+
+/* ============================================================
+   THE SOURCE - Design System
+   Aesthetic: Editorial Archive
+   - Clean, ADHD-optimized layouts
+   - Strong typography hierarchy
+   - Warm amber/gold accent (treasure trove metaphor)
+   - Dark-mode first with warm undertones
+   ============================================================ */
 
 /* Tailwind CSS v4 theme configuration */
 @theme {
+  /* Typography Scale */
+  --font-family-display: 'Fraunces', Georgia, serif;
+  --font-family-sans: 'DM Sans', system-ui, sans-serif;
+  --font-family-mono: 'JetBrains Mono', 'SF Mono', monospace;
+
   /* Source-specific colors (ADHD-optimized, high contrast) */
   --color-source-youtube: #ff0000;
   --color-source-reddit: #ff4500;
@@ -9,70 +26,331 @@
   --color-source-raindrop: #0093e0;
   --color-source-facebook: #1877f2;
   --color-source-telegram: #26a5e4;
-  --color-source-manual: #6366f1;
+  --color-source-manual: #8b5cf6;
 
   /* Status colors */
-  --color-status-unprocessed: #fbbf24;
-  --color-status-read: #22c55e;
-  --color-status-archived: #94a3b8;
+  --color-status-unprocessed: #f59e0b;
+  --color-status-read: #10b981;
+  --color-status-archived: #64748b;
 
-  /* Semantic colors for light mode */
-  --color-background: hsl(0 0% 100%);
-  --color-foreground: hsl(222.2 84% 4.9%);
-  --color-card: hsl(0 0% 100%);
-  --color-card-foreground: hsl(222.2 84% 4.9%);
-  --color-popover: hsl(0 0% 100%);
-  --color-popover-foreground: hsl(222.2 84% 4.9%);
-  --color-primary: hsl(222.2 47.4% 11.2%);
-  --color-primary-foreground: hsl(210 40% 98%);
-  --color-secondary: hsl(210 40% 96.1%);
-  --color-secondary-foreground: hsl(222.2 47.4% 11.2%);
-  --color-muted: hsl(210 40% 96.1%);
-  --color-muted-foreground: hsl(215.4 16.3% 46.9%);
-  --color-accent: hsl(210 40% 96.1%);
-  --color-accent-foreground: hsl(222.2 47.4% 11.2%);
-  --color-destructive: hsl(0 84.2% 60.2%);
-  --color-destructive-foreground: hsl(210 40% 98%);
-  --color-border: hsl(214.3 31.8% 91.4%);
-  --color-input: hsl(214.3 31.8% 91.4%);
-  --color-ring: hsl(222.2 84% 4.9%);
+  /* Editorial Palette - Light Mode */
+  --color-background: hsl(40 20% 98%);
+  --color-foreground: hsl(30 10% 12%);
+  --color-card: hsl(40 30% 99%);
+  --color-card-foreground: hsl(30 10% 12%);
+  --color-popover: hsl(40 30% 99%);
+  --color-popover-foreground: hsl(30 10% 12%);
+  --color-primary: hsl(35 90% 45%);
+  --color-primary-foreground: hsl(40 20% 98%);
+  --color-secondary: hsl(35 20% 94%);
+  --color-secondary-foreground: hsl(30 10% 25%);
+  --color-muted: hsl(35 15% 93%);
+  --color-muted-foreground: hsl(30 8% 50%);
+  --color-accent: hsl(35 30% 92%);
+  --color-accent-foreground: hsl(30 10% 20%);
+  --color-destructive: hsl(0 72% 51%);
+  --color-destructive-foreground: hsl(0 0% 100%);
+  --color-border: hsl(35 20% 88%);
+  --color-input: hsl(35 20% 88%);
+  --color-ring: hsl(35 90% 45%);
+
+  /* Sidebar-specific tokens */
+  --color-sidebar-bg: hsl(30 15% 8%);
+  --color-sidebar-fg: hsl(35 20% 90%);
+  --color-sidebar-muted: hsl(35 10% 55%);
+  --color-sidebar-accent: hsl(35 90% 50%);
+  --color-sidebar-hover: hsl(30 15% 14%);
+  --color-sidebar-active: hsl(35 90% 45%);
+  --color-sidebar-border: hsl(30 10% 18%);
 
   /* Radius */
-  --radius-lg: 0.5rem;
-  --radius-md: calc(var(--radius-lg) - 2px);
-  --radius-sm: calc(var(--radius-lg) - 4px);
+  --radius-lg: 0.75rem;
+  --radius-md: 0.5rem;
+  --radius-sm: 0.375rem;
+
+  /* Custom spacing */
+  --spacing-page: 1.5rem;
 }
 
-/* Dark mode overrides */
+/* Dark mode overrides - warm undertones */
 .dark {
-  --color-background: hsl(222.2 84% 4.9%);
-  --color-foreground: hsl(210 40% 98%);
-  --color-card: hsl(222.2 84% 4.9%);
-  --color-card-foreground: hsl(210 40% 98%);
-  --color-popover: hsl(222.2 84% 4.9%);
-  --color-popover-foreground: hsl(210 40% 98%);
-  --color-primary: hsl(210 40% 98%);
-  --color-primary-foreground: hsl(222.2 47.4% 11.2%);
-  --color-secondary: hsl(217.2 32.6% 17.5%);
-  --color-secondary-foreground: hsl(210 40% 98%);
-  --color-muted: hsl(217.2 32.6% 17.5%);
-  --color-muted-foreground: hsl(215 20.2% 65.1%);
-  --color-accent: hsl(217.2 32.6% 17.5%);
-  --color-accent-foreground: hsl(210 40% 98%);
-  --color-destructive: hsl(0 62.8% 30.6%);
-  --color-destructive-foreground: hsl(210 40% 98%);
-  --color-border: hsl(217.2 32.6% 17.5%);
-  --color-input: hsl(217.2 32.6% 17.5%);
-  --color-ring: hsl(212.7 26.8% 83.9%);
+  --color-background: hsl(30 15% 7%);
+  --color-foreground: hsl(35 25% 93%);
+  --color-card: hsl(30 12% 10%);
+  --color-card-foreground: hsl(35 25% 93%);
+  --color-popover: hsl(30 12% 10%);
+  --color-popover-foreground: hsl(35 25% 93%);
+  --color-primary: hsl(38 100% 55%);
+  --color-primary-foreground: hsl(30 15% 7%);
+  --color-secondary: hsl(30 10% 16%);
+  --color-secondary-foreground: hsl(35 20% 85%);
+  --color-muted: hsl(30 8% 15%);
+  --color-muted-foreground: hsl(35 12% 55%);
+  --color-accent: hsl(30 12% 18%);
+  --color-accent-foreground: hsl(35 25% 93%);
+  --color-destructive: hsl(0 62% 45%);
+  --color-destructive-foreground: hsl(0 0% 100%);
+  --color-border: hsl(30 8% 18%);
+  --color-input: hsl(30 8% 18%);
+  --color-ring: hsl(38 100% 55%);
+
+  /* Dark sidebar stays consistent */
+  --color-sidebar-bg: hsl(30 12% 6%);
+  --color-sidebar-hover: hsl(30 12% 12%);
+  --color-sidebar-border: hsl(30 8% 14%);
 }
 
-/* Base styles */
+/* ============================================================
+   Base Styles
+   ============================================================ */
+
 * {
   border-color: var(--color-border);
+}
+
+html {
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 body {
   background-color: var(--color-background);
   color: var(--color-foreground);
-  font-feature-settings: "rlig" 1, "calt" 1;
+  font-family: var(--font-family-sans);
+  line-height: 1.6;
 }
+
+/* Display headings use Fraunces */
+h1, h2 {
+  font-family: var(--font-family-display);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+/* Stats and counts use monospace */
+.font-mono {
+  font-family: var(--font-family-mono);
+  font-feature-settings: "tnum";
+}
+
+/* ============================================================
+   Custom Scrollbars
+   ============================================================ */
+
+/* Sidebar scrollbar */
+.sidebar-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-sidebar-border) transparent;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--color-sidebar-border);
+  border-radius: 3px;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--color-sidebar-muted);
+}
+
+/* Review modal scrollbar */
+.review-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+  scrollbar-gutter: stable;
+}
+
+.review-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.review-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.review-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+}
+
+.review-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+/* Config panel scrollbar */
+.config-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) rgba(255, 255, 255, 0.05);
+}
+
+.config-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.config-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 3px;
+}
+
+.config-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+.config-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+/* ============================================================
+   Custom Animations
+   ============================================================ */
+
+@keyframes subtle-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+@keyframes slide-up-fade {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-subtle-pulse {
+  animation: subtle-pulse 2s ease-in-out infinite;
+}
+
+.animate-slide-up {
+  animation: slide-up-fade 0.3s ease-out;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.2s ease-out;
+}
+
+/* Staggered children animation */
+.stagger-children > * {
+  animation: slide-up-fade 0.4s ease-out backwards;
+}
+
+.stagger-children > *:nth-child(1) { animation-delay: 0ms; }
+.stagger-children > *:nth-child(2) { animation-delay: 50ms; }
+.stagger-children > *:nth-child(3) { animation-delay: 100ms; }
+.stagger-children > *:nth-child(4) { animation-delay: 150ms; }
+.stagger-children > *:nth-child(5) { animation-delay: 200ms; }
+.stagger-children > *:nth-child(6) { animation-delay: 250ms; }
+.stagger-children > *:nth-child(7) { animation-delay: 300ms; }
+.stagger-children > *:nth-child(8) { animation-delay: 350ms; }
+
+/* ============================================================
+   Utility Classes
+   ============================================================ */
+
+/* Glass effect for overlays */
+.glass {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.dark .glass {
+  background: rgba(20, 18, 16, 0.85);
+}
+
+/* Subtle grain texture overlay */
+.grain::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  opacity: 0.03;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+}
+
+/* Focus ring style */
+.focus-ring {
+  outline: none;
+}
+
+.focus-ring:focus-visible {
+  outline: 2px solid var(--color-ring);
+  outline-offset: 2px;
+}
+
+/* Gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, var(--color-primary) 0%, hsl(45 100% 60%) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Card hover lift */
+.card-hover {
+  transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px -8px rgba(0, 0, 0, 0.15);
+}
+
+.dark .card-hover:hover {
+  box-shadow: 0 8px 24px -8px rgba(0, 0, 0, 0.4);
+}
+
+/* Source color underlines */
+.source-underline {
+  position: relative;
+}
+
+.source-underline::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  border-radius: 1px;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.2s ease-out;
+}
+
+.source-underline:hover::after {
+  transform: scaleX(1);
+}
+
+.source-underline.youtube::after { background: var(--color-source-youtube); }
+.source-underline.reddit::after { background: var(--color-source-reddit); }
+.source-underline.instagram::after { background: var(--color-source-instagram); }
+.source-underline.raindrop::after { background: var(--color-source-raindrop); }
+.source-underline.facebook::after { background: var(--color-source-facebook); }
+.source-underline.telegram::after { background: var(--color-source-telegram); }
+.source-underline.manual::after { background: var(--color-source-manual); }

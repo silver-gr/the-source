@@ -8,4 +8,18 @@
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
 | #9930 | 10:49 AM | 🔵 | Source Icon System with ADHD-Optimized Visual Recognition | ~403 |
+
+### Jan 14, 2026
+
+| ID | Time | T | Title | Read |
+|----|------|---|-------|------|
+| #11134 | 2:59 PM | 🟣 | Created SubredditGroupSidebar Component | ~393 |
+| #11128 | 2:57 PM | 🟣 | Added Subreddit Option to GroupBy Dropdown | ~350 |
+| #11127 | " | ✅ | Updated GroupBySelect Type and Icon Import | ~329 |
+| #11122 | 2:55 PM | 🔵 | Website Group Sidebar Component Pattern | ~427 |
+| #11114 | 2:52 PM | 🔵 | Social Mention Card Layout Without Overflow Protection | ~378 |
+| #11113 | " | 🔵 | GroupBySelect Component Missing Subreddit Option | ~364 |
+| #11112 | " | 🔵 | Social Presence Section Overflow Issue | ~380 |
+| #11109 | 2:51 PM | 🔵 | List View Row Layout with Title Truncation | ~361 |
+| #11108 | " | 🔵 | Item Detail Modal Layout Structure | ~356 |
 </claude-mem-context>
